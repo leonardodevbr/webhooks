@@ -1,0 +1,45 @@
+name: Deploy to HostGator
+
+on:
+  push:
+    branches:
+      - main  # Gatilho para o deploy, ao fazer push na branch 'main'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v2
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.SSH_KEY }}
+
+      - name: Copy files to HostGator
+        env:
+          HOST: ${{ secrets.HOST }}
+          USERNAME: ${{ secrets.USERNAME }}
+          DIRECTORY: ${{ secrets.DIRECTORY }}
+        run: |
+          rsync -avz \
+            -e "ssh -o StrictHostKeyChecking=no" \
+            ./ $USERNAME@$HOST:$DIRECTORY
+
+      - name: Run post-deploy commands
+        env:
+          HOST: ${{ secrets.HOST }}
+          USERNAME: ${{ secrets.USERNAME }}
+          DIRECTORY: ${{ secrets.DIRECTORY }}
+        run: |
+          ssh -o StrictHostKeyChecking=no $USERNAME@$HOST "
+            cd $DIRECTORY || exit 1
+            if [ -f artisan ]; then
+              php artisan migrate --force
+            else
+              echo 'Arquivo artisan não encontrado no diretório especificado.'
+              exit 1
+            fi
+          "
