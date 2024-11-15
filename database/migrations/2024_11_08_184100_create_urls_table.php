@@ -12,6 +12,8 @@ class CreateUrlsTable extends Migration
             $table->id();
             $table->string('hash')->unique();
             $table->ipAddress('ip_address');
+            $table->foreignId('account_id')->nullable()->constrained('accounts')->onDelete('cascade'); // Relacionado a uma conta
+            $table->string('slug')->nullable()->unique(); // Slug para a URL
             $table->timestamps();
         });
     }

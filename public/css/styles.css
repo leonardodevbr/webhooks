@@ -1,0 +1,171 @@
+
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    height: 100vh;
+    margin: 0;
+}
+
+#sidebar {
+    width: 25%;
+    padding: 20px;
+    background: #f4f4f4;
+    overflow-y: auto;
+}
+
+#content {
+    flex-grow: 1;
+    padding: 20px;
+}
+
+.webhook-item {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+    cursor: pointer;
+    height: 75px;
+}
+
+.webhook-item:hover {
+    background: #e4e4e4;
+}
+
+.webhook-item.active {
+    background: #5b5b5b;
+    color: #f1f2f3;
+}
+
+.webhook-details {
+    background: #fff;
+    border-radius: 4px;
+}
+
+/* Badge de método com cores */
+.div-badge {
+    padding-right: 10px;
+}
+
+.badge {
+    font-weight: bold;
+    padding: 4px 6px;
+    border-radius: 4px;
+    min-width: 50px;
+}
+
+.badge-get {
+    background: #5cb85c;
+    color: white;
+}
+
+.badge-post {
+    background: #5bc0de;
+    color: white;
+}
+
+.badge-put {
+    background: #777;
+    color: white;
+}
+
+.badge-delete {
+    background: #d9534f;
+    color: white;
+}
+
+.badge-patch {
+    background: #f0ad4e;
+    color: white;
+}
+
+.badge-head {
+    background: #337ab7;
+    color: white;
+}
+
+.badge-options {
+    background: #777;
+    color: white;
+}
+
+pre {
+    background: #f4f4f4;
+    padding: 15px;
+    border-radius: 4px;
+    overflow-x: auto;
+    max-width: 100%;
+    white-space: pre;
+    word-break: break-all;
+}
+
+.remove-btn:hover {
+    background-color: darkred;
+}
+
+.forward-btn, .remove-btn {
+    width: 26px;
+    height: 26px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+}
+
+.forward-btn {
+    margin-right: 5px;
+}
+
+.forward-btn img {
+    width: 15px;
+    filter: brightness(0) invert(1);
+}
+
+.clear-all {
+    background: #f44336;
+    color: white;
+    padding: 10px;
+    border: none;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+table.compact-table td {
+    padding: 4px;
+    font-size: 12px;
+}
+
+.new {
+    display: none;
+    margin-left: 5px;
+    margin-top: -1px;
+}
+
+.unviewed .new {
+    display: block;
+}
+
+.new i {
+    color: #27dd12;
+    font-size: 12px;
+}
+
+.forwarded {
+    display: inline-block;
+    font-style: italic;
+    font-size: 65%;
+    margin-left: -4px;
+    margin-top: -4px;
+    margin-bottom: 5px;
+    height: 15px;
+}
+
+.forwarded img {
+    width: 12px;
+    margin-top: -3px;
+}
+
+.webhook-item.active .forwarded img {
+    filter: brightness(0) invert(1);
+}
+
+.forward-btn {
+
+}
