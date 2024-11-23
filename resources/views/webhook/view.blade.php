@@ -18,7 +18,7 @@
 <body>
 <div class="container-fluid">
     <div class="row">
-        <div id="sidebar" class="col-12 col-lg-3">
+        <div id="sidebar" class="col-12 col-lg-3 col-sm-4">
             <div class="d-flex flex-column justify-content-between">
                 <div class="d-flex justify-content-between">
                     <h5>URL para compartilhamento</h5>
@@ -30,7 +30,7 @@
                 <div class="text-info small">
                     <a href="javascript:;" class="text-decoration-none text-info" id="copyUrl"
                        onclick="copyToClipboard()" data-toggle="tooltip" title="Copiar">
-                        <b>{{ route('webhook.listener', [$urlHash]) }}</b>
+                        <b>{{ route('webhook.listener', [$url->hash]) }}</b>
                     </a>
                 </div>
             </div>
@@ -43,13 +43,21 @@
                     <input type="text" class="form-control" id="retransmitUrlInput" placeholder="http://localhost"
                            aria-label="URL para retransmissão" aria-describedby="basic-addon2">
                     <div class="input-group-append">
-                        <button onclick="addRetransmitUrl()" class="btn btn-outline-secondary" type="button">
-                            Adicionar
-                            URL
+                        <button onclick="addRetransmissionUrl()" class="btn btn-outline-secondary" type="button">
+                            Adicionar URL
                         </button>
                     </div>
                 </div>
+                <div class="form-check mb-2">
+                    <input type="checkbox" class="form-check-input" id="processImmediatelyCheckbox">
+                    <label class="form-check-label" for="processImmediatelyCheckbox">Processar Imediatamente</label>
+                </div>
+                <div class="form-check mb-3">
+                    <input type="checkbox" class="form-check-input" id="isOnlineCheckbox">
+                    <label class="form-check-label" for="isOnlineCheckbox">Online</label>
+                </div>
             </div>
+
             <div class="dropdown-divider my-3"></div>
             <div class="d-flex justify-content-between">
                 <h5>Webhooks Recebidos</h5>
@@ -60,7 +68,7 @@
             <div class="dropdown-divider"></div>
             <div id="webhookList"></div>
         </div>
-        <div id="content" class="col-12 col-lg-9">
+        <div id="content" class="col-12 col-lg-9  col-sm-8">
             <div class="d-flex justify-content-between">
                 <h5>Detalhes da requisição:</h5>
                 <div>
@@ -71,7 +79,7 @@
                 </div>
             </div>
             <div class="dropdown-divider my-3"></div>
-            <div id="webhookDetails" class="webhook-details">Selecione um webhook para visualizar os
+            <div id="webhookDetails" class="webhook-details">Selecione um webhook para visalizar os
                 detalhes.
             </div>
         </div>
@@ -133,7 +141,8 @@
     };
 </script>
 <script>
-    window.urlHash = '{{ $urlHash }}';
+    window.urlHash = '{{ $url->hash }}';
+    window.urlId = '{{ $url->id }}';
 </script>
 <script src="{{ asset('js/scripts.js') }}"></script>
 

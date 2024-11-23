@@ -46,15 +46,28 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     const channel = pusher.subscribe(pusherChannel);
 
-    channel.bind('new-webhook', function (data) {
-        addWebhookToTop(data);
+    channel.bind('new-webhook', async function (webhookId) {
+        try {
+            // Fazendo a requisição com o ID do webhook recebido
+            const response = await fetch(route('webhook.load-single', { id: webhookId }), { method: 'GET' });
 
-        if (notificationsEnabled && Notification.permission === "granted") {
-            showNotification(data);
+            // Parseando os dados recebidos
+            const data = await response.json();
+
+            // Adicionando o webhook ao topo da lista
+            addWebhookToTop(data);
+
+            // Exibindo notificação, se permitido
+            if (notificationsEnabled && Notification.permission === "granted") {
+                showNotification(data);
+            }
+        } catch (error) {
+            console.error("Erro ao carregar o webhook:", error);
         }
     });
 
-    loadRetransmitUrls();
+
+    loadRetransmissionUrls();
     loadWebhooks();
 
     // Exibe a notificação inicial ao recarregar a página e autorizar
@@ -119,37 +132,6 @@ function showNotification(data) {
 
     new Notification("Novo Webhook Recebido", options);
 }
-
-let retransmitUrls = [];
-
-function loadRetransmitUrls() {
-    const urls = document.cookie.split('; ').find(row => row.startsWith('retransmitUrls='));
-    retransmitUrls = urls ? JSON.parse(decodeURIComponent(urls.split('=')[1])) : [];
-    displayRetransmitUrls();
-}
-
-function saveRetransmitUrls() {
-    document.cookie = `retransmitUrls=${encodeURIComponent(JSON.stringify(retransmitUrls))}; path=/`;
-}
-
-function addRetransmitUrl() {
-    const url = document.getElementById('retransmitUrlInput').value.trim();
-    if (url && !retransmitUrls.includes(url)) {
-        retransmitUrls.push(url);
-        saveRetransmitUrls();
-        displayRetransmitUrls();
-        document.getElementById('retransmitUrlInput').value = '';
-    }
-    loadWebhooks();
-}
-
-function removeRetransmitUrl(url) {
-    retransmitUrls = retransmitUrls.filter(u => u !== url);
-    saveRetransmitUrls();
-    displayRetransmitUrls();
-    loadWebhooks();
-}
-
 function displayRetransmitUrls() {
     const urlList = document.getElementById('urlList');
     urlList.innerHTML = '';
@@ -168,7 +150,7 @@ function displayRetransmitUrls() {
 }
 
 async function fetchWebhooks() {
-    const response = await fetch(route('webhook.load', {url_hash: window.urlHash}));
+    const response = await fetch(route('webhook.load', {url_hash: urlHash}));
     return await response.json();
 }
 
@@ -237,7 +219,7 @@ function createWebhookItem(webhook) {
                         <div class="div-badge">
                             <span class="badge badge-${webhook.method.toLowerCase()}">${webhook.method}</span>
                         </div>
-                        <span class="mr-auto">#${webhook.id.substring(0, 6)} ${webhook.host}</span>
+                        <span class="mr-auto">#${webhook.hash.substring(0, 6)} ${webhook.host}</span>
                     </div>
                 </div>
                 <div class="d-flex align-items-center">
@@ -304,7 +286,6 @@ function addWebhookToTop(webhook) {
     // Insere o novo item no topo da lista
     webhookList.prepend(item);
 
-
     // Apenas exibe o novo item se nenhum item já estiver ativo
     const activeItems = webhookList.getElementsByClassName('active');
     if (activeItems.length === 0) {
@@ -324,34 +305,53 @@ function showWebhookDetails(webhook, item) {
         let queryParams = "";
         let body = "";
         let formData = "";
+        let headers = "";
 
-        // Verifica e parseia os parâmetros de consulta, body e form_data
-        try {
-            queryParams = webhook.query_params ? JSON.stringify(JSON.parse(webhook.query_params), null, 2) : null;
-        } catch (error) {
-            console.warn("Query params não estão em JSON válido:", webhook.query_params);
-            queryParams = webhook.query_params || null;
-        }
+        // Verifica e parseia os campos principais do webhook
+        const parseJSON = (data) => {
+            try {
+                return JSON.stringify(JSON.parse(data), null, 2);
+            } catch (error) {
+                console.warn("Dado não está em JSON válido:", data);
+                return data || null;
+            }
+        };
 
         try {
             body = webhook.body ? JSON.stringify(JSON.parse(webhook.body), null, 2) : null;
         } catch (error) {
             console.warn("Corpo não está em JSON válido:", webhook.body);
-            body = webhook.body || null;
+            body = webhook.body || null; // Exibe o conteúdo bruto como fallback
         }
 
-        try {
-            formData = webhook.form_data ? JSON.stringify(JSON.parse(webhook.form_data), null, 2) : null;
-        } catch (error) {
-            console.warn("Form data não está em JSON válido:", webhook.form_data);
-            formData = webhook.form_data || null;
-        }
+        formData = webhook.form_data && webhook.form_data.length ? JSON.stringify(webhook.form_data, null, 2) : null;
 
-        // Ordem de exibição: body primeiro, seguido por form_data e query_params
-        const bodySection = body ? `<div class='mt-3'><strong>Body:</strong><pre>${body}</pre></div>` : "";
-        const formDataSection = formData ? `<div class='mt-3'><strong>Form Data:</strong><pre>${formData}</pre></div>` : "";
-        const queryParamsSection = queryParams ? `<div class='mt-3'><strong>Query Parameters:</strong><pre>${queryParams}</pre></div>` : "";
+        queryParams = webhook.query_params ? JSON.stringify(webhook.query_params, null, 2) : null;
+        headers = webhook.headers && webhook.headers.length ? JSON.stringify(webhook.headers, null, 2) : null;
 
+        // Ordem de exibição dos dados
+        const bodySection = `
+            <div class='mt-3'>
+                <strong>Body:</strong>
+                <pre>${body}</pre>
+            </div>`;
+        const formDataSection = `
+            <div class='mt-3'>
+                <strong>Form Data:</strong>
+                <pre>${formData}</pre>
+            </div>`;
+        const queryParamsSection = `
+            <div class='mt-3'>
+                <strong>Query Parameters:</strong>
+                <pre>${queryParams}</pre>
+            </div>`;
+        const headersSection = `
+            <div class='mt-3'>
+                <strong>Headers:</strong>
+                <pre>${headers}</pre>
+            </div>`;
+
+        // Monta os detalhes do webhook
         details.innerHTML = `
         <div class="row">
             <div class="col-md-6">
@@ -362,7 +362,9 @@ function showWebhookDetails(webhook, item) {
                         ${webhook.host ? `<tr><td><strong>Host:</strong> ${webhook.host}</td></tr>` : ""}
                         ${webhook.timestamp ? `<tr><td><strong>Data:</strong> ${webhook.timestamp}</td></tr>` : ""}
                         ${webhook.size ? `<tr><td><strong>Tamanho:</strong> ${webhook.size} bytes</td></tr>` : ""}
-                        ${webhook.id ? `<tr><td><strong>ID:</strong> ${webhook.id}</td></tr>` : ""}
+                        ${webhook.hash ? `<tr><td><strong>Hash:</strong> ${webhook.hash}</td></tr>` : ""}
+                        ${webhook.retransmitted !== undefined ? `<tr><td><strong>Retransmitido:</strong> ${webhook.retransmitted ? "Sim" : "Não"}</td></tr>` : ""}
+                        ${webhook.viewed !== undefined ? `<tr><td><strong>Visualizado:</strong> ${webhook.viewed ? "Sim" : "Não"}</td></tr>` : ""}
                     </table>
                 </div>
             </div>
@@ -370,20 +372,18 @@ function showWebhookDetails(webhook, item) {
                 <div class='table-responsive'>
                     <table class="compact-table table table-borderless table-sm table-striped">
                         <tr><td><strong>Headers</strong></td></tr>
-                        ${webhook.headers ?
-            Object.entries(JSON.parse(webhook.headers)).map(([header, value]) => `
-                                <tr><td><strong>${header}:</strong> ${value}</td></tr>
-                            `).join('')
-            : "<tr><td>Não recebido</td></tr>"}
+                        ${Object.entries(webhook.headers || {}).map(([header, value]) => `
+                            <tr><td><strong>${header}:</strong> ${Array.isArray(value) ? value.join(', ') : value}</td></tr>
+                        `).join('') || "<tr><td>Não recebido</td></tr>"}
                     </table>
                 </div>
             </div>
         </div>
         <div class="row mt-3">
             <div class="col-12">
-                ${bodySection || ""}
-                ${formDataSection || ""}
-                ${queryParamsSection || ""}
+                ${body && body !== '[]' && body !== undefined ?  bodySection : ""}
+                ${formData && formData !== '[]' && formData !== undefined  ?  formDataSection : ""}
+                ${queryParams && queryParams !== '[]' && queryParams !== undefined  ?  queryParamsSection : ""}
             </div>
         </div>
     `;
@@ -400,9 +400,9 @@ function showWebhookDetails(webhook, item) {
 }
 
 
-async function removeWebhook(uuid) {
-    document.getElementById(`item-${uuid}`).remove();
-    await fetch(route('webhook.delete', {uuid: uuid}), {method: 'DELETE'});
+async function removeWebhook(id) {
+    document.getElementById(`item-${id}`).remove();
+    await fetch(route('webhook.delete', {id: id}), {method: 'DELETE'});
 }
 
 async function clearAllWebhooks() {
@@ -411,65 +411,6 @@ async function clearAllWebhooks() {
         loadWebhooks();
     }
 }
-
-async function retransmitWebhook(uuid) {
-    try {
-        // Busca os dados do webhook a partir da request 'load-single'
-        const response = await fetch(route('webhook.load-single', {id: uuid}), {method: 'GET'});
-
-        if (!response.ok) {
-            throw new Error("Erro ao carregar o webhook.");
-        }
-
-        const webhook = await response.json(); // Parseia a resposta JSON com os dados do webhook
-
-        let retransmitted = false;
-
-        for (const url of retransmitUrls) {
-            const queryParams = new URLSearchParams(JSON.parse(webhook.query_params)).toString();
-            const fullUrl = queryParams ? `${url}?${queryParams}` : url;
-
-            const xhr = new XMLHttpRequest();
-            xhr.open(webhook.method, fullUrl);
-
-            if (['POST', 'PUT', 'PATCH'].includes(webhook.method)) {
-                let formData;
-
-                // Se o corpo é um JSON, converte para form-data
-                try {
-                    const jsonBody = JSON.parse(webhook.body);
-                    formData = new FormData();
-
-                    for (const key in jsonBody) {
-                        if (jsonBody.hasOwnProperty(key)) {
-                            formData.append(key, jsonBody[key]);
-                        }
-                    }
-
-                    xhr.send(formData); // Envia como form-data
-
-                } catch (error) {
-                    // Se o corpo não é JSON válido, envia como texto simples
-                    xhr.setRequestHeader('Content-Type', 'application/json');
-                    xhr.send(webhook.body);
-                }
-
-            } else {
-                xhr.send(); // Para requisições GET, DELETE, etc.
-            }
-
-            retransmitted = true;
-        }
-
-        // Marca como retransmitido após sucesso
-        if (retransmitted) {
-            await markRetransmitted(webhook.id);
-        }
-    } catch (error) {
-        console.error("Erro:", error);
-    }
-}
-
 
 async function markRetransmitted(id) {
     if (retransmitUrls.length > 0) {
@@ -596,4 +537,185 @@ async function createNewUrl() {
     } else {
         console.log("A criação de uma nova URL foi cancelada pelo usuário.");
     }
+}
+
+async function retransmitWebhook(id) {
+    try {
+        // Busca os dados do webhook a partir do backend
+        const webhookResponse = await fetch(route('webhook.load-single', { id: id }), { method: 'GET' });
+        if (!webhookResponse.ok) {
+            throw new Error("Erro ao carregar o webhook.");
+        }
+        const webhook = await webhookResponse.json(); // Parseia o webhook recebido
+
+        // Busca URLs de retransmissão do backend
+        const retransmitUrls = await loadRetransmitUrls();
+        if (retransmitUrls.length === 0) {
+            console.warn("Nenhuma URL de retransmissão disponível.");
+            return;
+        }
+
+        let retransmitted = false;
+
+        for (const url of retransmitUrls) {
+            const queryParams = webhook.query_params
+                ? new URLSearchParams(webhook.query_params).toString()
+                : "";
+            const fullUrl = queryParams ? `${url}?${queryParams}` : url;
+
+            const xhr = new XMLHttpRequest();
+            xhr.open(webhook.method, fullUrl);
+
+            // Configura os headers válidos
+            if (webhook.headers && typeof webhook.headers === 'object') {
+                const unsafeHeaders = [
+                    "host",
+                    "cookie",
+                    "connection",
+                    "user-agent",
+                    "content-length",
+                    "accept-encoding",
+                ];
+
+                Object.entries(webhook.headers).forEach(([key, value]) => {
+                    if (!unsafeHeaders.includes(key.toLowerCase())) {
+                        const headerValue = Array.isArray(value) ? value.join(", ") : value;
+                        xhr.setRequestHeader(key, headerValue);
+                    }
+                });
+            }
+
+            // Verifica o método HTTP e envia os dados adequados
+            if (['POST', 'PUT', 'PATCH'].includes(webhook.method)) {
+                if (webhook.body) {
+                    try {
+                        const jsonBody = JSON.parse(webhook.body); // Testa se é JSON válido
+                        xhr.setRequestHeader('Content-Type', 'application/json');
+                        xhr.send(JSON.stringify(jsonBody)); // Envia como JSON
+                    } catch (error) {
+                        xhr.setRequestHeader('Content-Type', 'text/plain');
+                        xhr.send(webhook.body); // Envia o corpo bruto como texto
+                    }
+                } else if (webhook.form_data) {
+                    const formData = new FormData();
+                    Object.entries(webhook.form_data).forEach(([key, value]) => {
+                        formData.append(key, value);
+                    });
+                    xhr.send(formData); // Envia como FormData
+                } else {
+                    xhr.send(); // Envia requisição sem corpo
+                }
+            } else if (['GET', 'DELETE'].includes(webhook.method)) {
+                xhr.send(); // Envia requisição sem corpo
+            } else {
+                xhr.send(); // Envia requisição genérica
+            }
+
+            retransmitted = true;
+        }
+
+        // Marca como retransmitido após sucesso
+        if (retransmitted) {
+            await markRetransmitted(webhook.id);
+        }
+    } catch (error) {
+        console.error("Erro ao retransmitir webhook:", error);
+    }
+}
+
+// Função para carregar todas as URLs de retransmissão relacionadas a uma URL específica
+async function loadRetransmissionUrls() {
+    try {
+        const response = await fetch(route('webhook.retransmission.list-for-url', { url_id: urlId }), { method: 'GET' });
+
+        if (!response.ok) {
+            throw new Error("Erro ao carregar URLs de retransmissão.");
+        }
+
+        const urls = await response.json();
+        displayRetransmissionUrls(urls);
+        return urls;
+    } catch (error) {
+        console.error("Erro ao carregar URLs de retransmissão:", error);
+        return [];
+    }
+}
+
+async function addRetransmissionUrl() {
+    const url = document.getElementById('retransmitUrlInput').value.trim();
+    const processImmediately = document.getElementById('processImmediatelyCheckbox').checked;
+    const isOnline = document.getElementById('isOnlineCheckbox').checked;
+
+    if (!url) {
+        alert("URL não pode estar vazia.");
+        return;
+    }
+
+    try {
+        const response = await fetch('/api/retransmission-urls', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                url,
+                process_immediately: processImmediately,
+                is_online: isOnline,
+            }),
+        });
+
+        if (!response.ok) {
+            throw new Error("Erro ao adicionar a URL de retransmissão.");
+        }
+
+        console.log("URL adicionada com sucesso.");
+        document.getElementById('retransmitUrlInput').value = ''; // Limpa o campo
+        loadRetransmissionUrls(); // Recarrega a lista
+    } catch (error) {
+        console.error("Erro ao adicionar a URL de retransmissão:", error);
+    }
+}
+
+async function removeRetransmissionUrl(id) {
+    try {
+        const response = await fetch(`/api/retransmission-urls/${id}`, {
+            method: 'DELETE',
+        });
+
+        if (!response.ok) {
+            throw new Error("Erro ao remover a URL de retransmissão.");
+        }
+
+        console.log(`URL ID ${id} removida com sucesso.`);
+        loadRetransmissionUrls(); // Recarrega a lista após remoção
+    } catch (error) {
+        console.error("Erro ao remover a URL de retransmissão:", error);
+    }
+}
+
+// Função para exibir URLs de retransmissão em uma tabela ou lista no frontend
+function displayRetransmissionUrls(urls) {
+    const container = document.getElementById('urlList'); // Container correto para exibir as URLs
+    container.innerHTML = ''; // Limpa a lista atual
+
+    if (urls.length === 0) {
+        container.innerHTML = '<p>Nenhuma URL de retransmissão cadastrada.</p>';
+        return;
+    }
+
+    urls.forEach(url => {
+        const row = document.createElement('div');
+        row.className = 'retransmission-url-item';
+        row.innerHTML = `
+            <div class="form-group">
+                <p>
+                    <strong>URL:</strong> ${url.url}<br>
+                    <strong>Processar Imediatamente:</strong> ${url.process_immediately ? 'Sim' : 'Não'}<br>
+                    <strong>Online:</strong> ${url.is_online ? 'Sim' : 'Não'}
+                </p>
+                <button onclick="removeRetransmissionUrl(${url.id})" class="btn btn-danger btn-sm">Remover</button>
+            </div>
+        `;
+        container.appendChild(row);
+    });
 }

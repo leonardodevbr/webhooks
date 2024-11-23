@@ -13,6 +13,7 @@ return new class extends Migration
     {
         Schema::create('accounts', function (Blueprint $table) {
             $table->id();
+            $table->uuid('hash')->unique();
             $table->string('name');
             $table->string('slug')->unique(); // Slug usado na URL
             $table->string('email')->unique();
