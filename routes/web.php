@@ -14,9 +14,8 @@ Route::get('/{url_hash}/webhook/load', [WebhookController::class, 'load'])->name
 Route::delete('/webhook/{id}', [WebhookController::class, 'delete'])->name('webhook.delete');
 Route::delete('/{url_hash}/webhook/delete-all', [WebhookController::class, 'deleteAll'])->name('webhook.delete-all');
 Route::get('/webhook/{id}', [WebhookController::class, 'loadSingle'])->name('webhook.load-single');
-Route::patch('/webhook/{id}/retransmit', [WebhookController::class, 'markRetransmitted'])->name(
-    'webhook.mark-retransmitted'
-);
+Route::post('/webhook/{id}/retransmit', [WebhookController::class, 'retransmitWebhook'])->name('webhook.retransmit');
+Route::patch('/webhook/{id}/retransmitted', [WebhookController::class, 'markRetransmitted'])->name('webhook.mark-retransmitted');
 Route::patch('/webhook/{id}/viewed', [WebhookController::class, 'markAsViewed'])->name('webhook.mark-viewed');
 
 Route::prefix('webhook-retransmission')->group(function () {
@@ -36,9 +35,6 @@ Route::prefix('webhook-retransmission')->group(function () {
     Route::get('urls/{url_id}', [WebhookUrlController::class, 'listRetransmissionUrlsForUrl'])
         ->name('webhook.retransmission.list-for-url');
 
-    // Rota para retransmitir um webhook (exemplo de uso interno ou teste)
-    Route::post('retransmit', [WebhookUrlController::class, 'retransmitWebhook'])
-        ->name('webhook.retransmission.retransmit');
 });
 
 

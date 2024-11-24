@@ -16,7 +16,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $id
  * @property int $url_id
  * @property string $url
- * @property bool $process_immediately
  * @property bool $is_online
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
@@ -30,14 +29,12 @@ class WebhookRetransmissionUrl extends Model
 
 	protected $casts = [
 		'url_id' => 'int',
-		'process_immediately' => 'bool',
 		'is_online' => 'bool'
 	];
 
 	protected $fillable = [
 		'url_id',
 		'url',
-		'process_immediately',
 		'is_online'
 	];
 

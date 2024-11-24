@@ -48,10 +48,6 @@
                         </button>
                     </div>
                 </div>
-                <div class="form-check mb-2">
-                    <input type="checkbox" class="form-check-input" id="processImmediatelyCheckbox">
-                    <label class="form-check-label" for="processImmediatelyCheckbox">Processar Imediatamente</label>
-                </div>
                 <div class="form-check mb-3">
                     <input type="checkbox" class="form-check-input" id="isOnlineCheckbox">
                     <label class="form-check-label" for="isOnlineCheckbox">Online</label>

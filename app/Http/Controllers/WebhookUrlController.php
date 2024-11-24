@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Url;
+use App\Models\Webhook;
 use App\Models\WebhookRetransmissionUrl;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class WebhookUrlController extends Controller
@@ -21,26 +24,27 @@ class WebhookUrlController extends Controller
 
     public function addRetransmissionUrl(Request $request)
     {
-        $validated = $request->validate([
-            'url' => 'required|url|max:255',
-            'process_immediately' => 'boolean',
-            'is_online' => 'boolean'
-        ]);
-
         try {
+            // Validação dos dados
+            $validated = $request->validate([
+                'url_id' => 'required|integer|exists:urls,id', // Garante que o ID existe na tabela 'urls'
+                'url' => 'required|url|max:255', // URL válida com limite de 255 caracteres
+                'is_online' => 'boolean' // Garante que seja booleano
+            ]);
+
+            // Criação da URL de retransmissão
             $newUrl = WebhookRetransmissionUrl::create([
+                'url_id' => $validated['url_id'],
                 'url' => $validated['url'],
-                'process_immediately' => $validated['process_immediately'] ?? false,
                 'is_online' => $validated['is_online'] ?? false,
             ]);
 
             return response()->json(['success' => 'URL de retransmissão adicionada com sucesso.', 'url' => $newUrl]);
         } catch (\Exception $e) {
-            Log::error("Erro ao adicionar URL de retransmissão: ".$e->getMessage());
+            Log::error("Erro ao adicionar URL de retransmissão: " . $e->getMessage());
             return response()->json(['error' => 'Erro ao adicionar URL de retransmissão.'], 500);
         }
     }
-
 
     public function removeRetransmissionUrl($id)
     {
@@ -62,30 +66,6 @@ class WebhookUrlController extends Controller
         } catch (\Exception $e) {
             Log::error("Erro ao listar URLs de retransmissão para URL específica: ".$e->getMessage());
             return response()->json(['error' => 'Erro ao listar URLs de retransmissão.'], 500);
-        }
-    }
-
-    public function retransmitWebhook($webhookData)
-    {
-        $urls = WebhookRetransmissionUrl::where('is_online', true)->get();
-
-        foreach ($urls as $url) {
-            try {
-                $queryParams = http_build_query($webhookData['query_params'] ?? []);
-                $fullUrl = $queryParams ? "{$url->url}?{$queryParams}" : $url->url;
-
-                $response = Http::withHeaders($webhookData['headers'] ?? [])
-                    ->send($webhookData['method'], $fullUrl, [
-                        'body' => $webhookData['body'] ?? null,
-                    ]);
-
-                if ($response->failed()) {
-                    // Log de erro
-                    logger()->error("Falha na retransmissão para {$fullUrl}");
-                }
-            } catch (\Exception $e) {
-                logger()->error("Erro ao retransmitir para {$url->url}: {$e->getMessage()}");
-            }
         }
     }
 }

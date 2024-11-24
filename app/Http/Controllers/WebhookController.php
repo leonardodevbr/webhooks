@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Url;
 use App\Models\Webhook;
+use App\Models\WebhookRetransmissionUrl;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Pusher\Pusher;
@@ -67,7 +69,12 @@ class WebhookController extends Controller
 
             $webhook = Webhook::create($requestData);
             if ($webhook) {
+                // Dispara o evento para o Pusher
                 $this->triggerPusherEvent($webhook);
+
+                // Retransmite imediatamente caso necessário
+                $this->retransmitWebhook($webhook->id);
+
                 return response()->json(['message' => 'Webhook recebido.', 'data' => ['webhook_hash' => $webhook->hash]]);
             }
 
@@ -151,7 +158,7 @@ class WebhookController extends Controller
             ['cluster' => $config['cluster']]
         );
 
-        $pusher->trigger(config('services.pusher.channel'), 'new-webhook', ['id' => $webhook->id]);
+        $pusher->trigger($config['channel'], 'new-webhook', ['id' => $webhook->id]);
     }
 
     /**
@@ -292,4 +299,50 @@ class WebhookController extends Controller
             return response()->json(['error' => 'Erro ao processar a solicitação.'], 500);
         }
     }
+
+    public function retransmitWebhook(string $webhookId)
+    {
+        try {
+            $webhook = Webhook::where('id', $webhookId)->first();
+
+            if (!$webhook) {
+                return response()->json(['error' => 'Webhook inválido.'], 404);
+            }
+
+            $url = $webhook->url; // Assume que o relacionamento 'url' está configurado no modelo Webhook
+            if (!$url) {
+                return response()->json(['error' => 'Webhook não está associado a nenhuma URL.'], 404);
+            }
+
+            $retransmissionUrls = $url->webhook_retransmission_urls()->where('is_online', true)->get(); // Apenas URLs online
+
+            foreach ($retransmissionUrls as $retransmissionUrl) {
+                $queryParams = is_string($webhook->query_params)
+                    ? json_decode($webhook->query_params, true)
+                    : ($webhook->query_params ?? []);
+
+                $queryString = http_build_query($queryParams);
+                $fullUrl = $queryString ? "{$retransmissionUrl->url}?{$queryString}" : $retransmissionUrl->url;
+
+                $headers = is_string($webhook->headers)
+                    ? json_decode($webhook->headers, true)
+                    : ($webhook->headers ?? []);
+
+                $response = Http::withHeaders($headers)
+                    ->send($webhook->method, $fullUrl, [
+                        'body' => $webhook->body,
+                    ]);
+
+                if ($response->failed()) {
+                    Log::error("Falha na retransmissão para {$fullUrl}");
+                }
+            }
+
+            return response()->json(['success' => 'Retransmissão concluída.']);
+        } catch (\Exception $e) {
+            Log::error('Erro ao retransmitir webhook: ' . $e->getMessage());
+            return response()->json(['error' => 'Erro ao processar a solicitação.'], 500);
+        }
+    }
+
 }

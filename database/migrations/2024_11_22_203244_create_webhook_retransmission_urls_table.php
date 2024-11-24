@@ -14,8 +14,7 @@ return new class extends Migration
         Schema::create('webhook_retransmission_urls', function (Blueprint $table) {
             $table->id(); // ID da tabela
             $table->foreignId('url_id')->constrained('urls')->onDelete('cascade'); // Associação com a tabela de URLs
-            $table->string('url', 255); // URL para retransmissão
-            $table->boolean('process_immediately')->default(false); // Flag para indicar processamento imediato
+            $table->text('url'); // URL para retransmissão
             $table->boolean('is_online')->default(false); // Flag para indicar se é Online ou Local
             $table->timestamps(); // Campos created_at e updated_at
         });
