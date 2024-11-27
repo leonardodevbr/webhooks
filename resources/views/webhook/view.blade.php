@@ -35,26 +35,6 @@
                 </div>
             </div>
             <div class="dropdown-divider my-2"></div>
-            <h6>URLs de Retransmissão</h6>
-            <div id="urlList"></div>
-            <div class="dropdown-divider my-3"></div>
-            <div id="retransmitUrlsContainer">
-                <div class="input-group mb-3">
-                    <input type="text" class="form-control" id="retransmitUrlInput" placeholder="http://localhost"
-                           aria-label="URL para retransmissão" aria-describedby="basic-addon2">
-                    <div class="input-group-append">
-                        <button onclick="addRetransmissionUrl()" class="btn btn-outline-secondary" type="button">
-                            Adicionar URL
-                        </button>
-                    </div>
-                </div>
-                <div class="form-check mb-3">
-                    <input type="checkbox" class="form-check-input" id="isOnlineCheckbox">
-                    <label class="form-check-label" for="isOnlineCheckbox">Online</label>
-                </div>
-            </div>
-
-            <div class="dropdown-divider my-3"></div>
             <div class="d-flex justify-content-between">
                 <h5>Webhooks Recebidos</h5>
                 <div id="resetButtonContainer">
@@ -68,6 +48,9 @@
             <div class="d-flex justify-content-between">
                 <h5>Detalhes da requisição:</h5>
                 <div>
+                    <button class="btn m-0 btn-primary btn-sm"data-toggle="modal" data-target="#retransmitUrlsModal">
+                        Gerenciar URLs de Retransmissão
+                    </button>
                     <button class="btn m-0 btn-info btn-sm" id="toggleNotifications"
                             onclick="toggleNotifications()">
                         <i class="fa fa-bell-o"></i>
@@ -81,6 +64,63 @@
         </div>
     </div>
 </div>
+
+<!-- Modal -->
+<div class="modal fade" id="retransmitUrlsModal" tabindex="-1" role="dialog" aria-labelledby="retransmitUrlsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <!-- Cabeçalho do Modal -->
+            <div class="modal-header">
+                <h5 class="modal-title" id="retransmitUrlsModalLabel">URLs de Retransmissão</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <!-- Corpo do Modal -->
+            <div class="modal-body">
+                <div class="table-responsive url-list">
+                    <table class="table table-striped table-borderless">
+                        <thead>
+                        <tr>
+                            <th>URL</th>
+                            <th>Online</th>
+                            <th>Ações</th>
+                        </tr>
+                        </thead>
+                        <tbody id="urlList">
+                        <!-- As linhas serão adicionadas dinamicamente -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="dropdown-divider my-3"></div>
+                <div id="retransmitUrlsContainer" class="mb-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <!-- Input de URL -->
+                        <input type="text" class="form-control" id="retransmitUrlInput" placeholder="http://localhost"
+                               aria-label="URL para retransmissão">
+
+                        <!-- Select Local/Remoto -->
+                        <select id="retransmitTypeSelect" class="form-control w-auto mx-3">
+                            <option value="0">Local</option>
+                            <option value="1">Remoto</option>
+                        </select>
+
+                        <div class="">
+                            <button onclick="addRetransmissionUrl()" class="btn btn-primary">Salvar</button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            <!-- Rodapé do Modal -->
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
 
 <div class="modal fade" id="featureModal" tabindex="-1" aria-labelledby="featureModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
