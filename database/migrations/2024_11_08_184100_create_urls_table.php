@@ -10,8 +10,10 @@ class CreateUrlsTable extends Migration
     {
         Schema::create('urls', function (Blueprint $table) {
             $table->id();
-            $table->string('hash')->unique();
-            $table->ipAddress('ip_address');
+            $table->uuid('hash')->unique();
+            $table->ipAddress();
+            $table->foreignId('account_id')->nullable()->constrained('accounts')->onDelete('cascade'); // Relacionado a uma conta
+            $table->string('slug')->nullable()->unique(); // Slug para a URL
             $table->timestamps();
         });
     }

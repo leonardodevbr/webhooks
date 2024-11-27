@@ -8,25 +8,27 @@ namespace App\Models;
 
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
  * Class Webhook
- *
- * @property string $id
+ * 
+ * @property int $id
+ * @property string $hash
  * @property int $url_id
  * @property Carbon|null $timestamp
  * @property string $method
- * @property string|null $headers
- * @property string|null $query_params
+ * @property array|null $headers
+ * @property array|null $query_params
  * @property string|null $body
- * @property string|null $form_data
+ * @property array|null $form_data
  * @property string $host
  * @property int|null $size
  * @property bool $retransmitted
  * @property bool $viewed
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
- *
+ * 
  * @property Url $url
  *
  * @package App\Models
@@ -34,18 +36,20 @@ use Illuminate\Database\Eloquent\Model;
 class Webhook extends Model
 {
 	protected $table = 'webhooks';
-	public $incrementing = false;
 
 	protected $casts = [
 		'url_id' => 'int',
 		'timestamp' => 'datetime',
+		'headers' => 'array',
+		'query_params' => 'array',
+		'form_data' => 'array',
 		'size' => 'int',
 		'retransmitted' => 'bool',
 		'viewed' => 'bool'
 	];
 
 	protected $fillable = [
-		'id',
+		'hash',
 		'url_id',
 		'timestamp',
 		'method',
@@ -59,7 +63,7 @@ class Webhook extends Model
 		'viewed'
 	];
 
-	public function url()
+	public function url(): BelongsTo
 	{
 		return $this->belongsTo(Url::class);
 	}

@@ -265,6 +265,9 @@ return [
 
         'casts' => [
             '*_json' => 'json',
+            'headers' => 'array',
+            'query_params' => 'array',
+            'form_data' => 'array'
         ],
 
         /*
@@ -460,7 +463,7 @@ return [
         | NOTE: This requires PHP 7.0 or later.
         |
         */
-        'enable_return_types' => false,
+        'enable_return_types' => true,
     ],
 
     /*
