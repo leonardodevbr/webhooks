@@ -672,3 +672,123 @@ function toggleNotifications() {
         location.reload();
     }
 }
+
+// Validação dinâmica dos formulários
+function validateForm(formId, submitButtonId) {
+    const form = document.getElementById(formId);
+    const button = document.getElementById(submitButtonId);
+
+    form.addEventListener('input', () => {
+        const allFieldsFilled = Array.from(form.elements).every(input => input.value.trim() !== '');
+        button.disabled = !allFieldsFilled;
+    });
+}
+
+validateForm('loginForm', 'loginSubmit');
+validateForm('registerForm', 'registerSubmit');
+
+async function loginAccount() {
+    const button = document.getElementById('loginSubmit');
+    button.disabled = true;
+    button.innerHTML = 'Processando...';
+
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value.trim();
+
+    try {
+        const response = await fetch(route('account.login'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            updateAccountButton(data.user);
+            $('#accountModal').modal('hide');
+        } else {
+            alert(data.error || 'Erro ao fazer login.');
+        }
+    } catch (error) {
+        console.error('Erro ao fazer login:', error);
+        alert('Erro ao processar o login.');
+    } finally {
+        button.disabled = false;
+        button.innerHTML = 'Entrar';
+    }
+}
+
+async function registerAccount() {
+    const button = document.getElementById('registerSubmit');
+    button.disabled = true;
+    button.innerHTML = 'Processando...';
+
+    const name = document.getElementById('registerName').value.trim();
+    const slug = document.getElementById('registerSlug').value.trim();
+    const email = document.getElementById('registerEmail').value.trim();
+    const password = document.getElementById('registerPassword').value.trim();
+    const passwordConfirm = document.getElementById('registerPasswordConfirm').value.trim();
+
+    if (password !== passwordConfirm) {
+        alert('As senhas não coincidem!');
+        button.disabled = false;
+        button.innerHTML = 'Registrar';
+        return;
+    }
+
+    try {
+        const response = await fetch(route('account.register'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, slug, email, password, password_confirmation: passwordConfirm }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            updateAccountButton(data.user);
+            $('#accountModal').modal('hide');
+        } else {
+            alert(data.error || 'Erro ao registrar conta.');
+        }
+    } catch (error) {
+        console.error('Erro ao registrar conta:', error);
+        alert('Erro ao processar o registro.');
+    } finally {
+        button.disabled = false;
+        button.innerHTML = 'Registrar';
+    }
+}
+
+// Atualiza o botão de conta para um dropdown
+function updateAccountButton(user) {
+    const accountButton = document.getElementById('accountButton');
+    accountButton.innerHTML = `
+        <div class="dropdown">
+            <button class="btn btn-primary dropdown-toggle" type="button" id="accountDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                ${user.name}
+            </button>
+            <div class="dropdown-menu" aria-labelledby="accountDropdown">
+                <a class="dropdown-item" href="#">Perfil</a>
+                <div class="dropdown-divider"></div>
+                <a class="dropdown-item text-danger" onclick="logoutAccount()">Sair</a>
+            </div>
+        </div>
+    `;
+}
+
+// Logout
+async function logoutAccount() {
+    try {
+        const response = await fetch(route('account.logout'), { method: 'POST' });
+        if (response.ok) {
+            location.reload(); // Atualiza a página após logout
+        } else {
+            alert('Erro ao fazer logout.');
+        }
+    } catch (error) {
+        console.error('Erro ao fazer logout:', error);
+    }
+}
+

@@ -48,12 +48,15 @@
             <div class="d-flex justify-content-between">
                 <h5>Detalhes da requisição:</h5>
                 <div>
-                    <button class="btn m-0 btn-primary btn-sm"data-toggle="modal" data-target="#retransmitUrlsModal">
-                        Gerenciar URLs de Retransmissão
-                    </button>
                     <button class="btn m-0 btn-info btn-sm" id="toggleNotifications"
                             onclick="toggleNotifications()">
                         <i class="fa fa-bell-o"></i>
+                    </button>
+                    <button class="btn m-0 btn-primary btn-sm" data-toggle="modal" data-target="#retransmitUrlsModal">
+                        Gerenciar URLs de Retransmissão
+                    </button>
+                    <button class="btn btn-outline-info btn-sm" id="accountButton" data-toggle="modal" data-target="#accountModal">
+                        Fazer Login
                     </button>
                 </div>
             </div>
@@ -64,6 +67,80 @@
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="accountModal" tabindex="-1" role="dialog" aria-labelledby="accountModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <!-- Cabeçalho do Modal -->
+            <div class="modal-header">
+                <h5 class="modal-title" id="accountModalLabel">Gerenciar Conta</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <!-- Corpo do Modal -->
+            <div class="modal-body">
+                <!-- Tabs para alternar entre Login e Registro -->
+                <ul class="nav nav-tabs" id="accountTab" role="tablist">
+                    <li class="nav-item">
+                        <a class="nav-link active" id="login-tab" data-toggle="tab" href="#login" role="tab" aria-controls="login" aria-selected="true">Login</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" id="register-tab" data-toggle="tab" href="#register" role="tab" aria-controls="register" aria-selected="false">Registrar</a>
+                    </li>
+                </ul>
+                <div class="tab-content mt-3">
+                    <!-- Login -->
+                    <div class="tab-pane fade show active" id="login" role="tabpanel" aria-labelledby="login-tab">
+                        <form id="loginForm">
+                            <div class="form-group">
+                                <label for="loginEmail">E-mail</label>
+                                <input type="email" class="form-control" id="loginEmail" placeholder="Digite seu e-mail" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="loginPassword">Senha</label>
+                                <input type="password" class="form-control" id="loginPassword" placeholder="Digite sua senha" required>
+                            </div>
+                            <button type="button" class="btn btn-primary" id="loginSubmit" disabled onclick="loginAccount()">Entrar</button>
+                        </form>
+                    </div>
+                    <!-- Registro -->
+                    <div class="tab-pane fade" id="register" role="tabpanel" aria-labelledby="register-tab">
+                        <form id="registerForm">
+                            <div class="form-group">
+                                <label for="registerName">Nome</label>
+                                <input type="text" class="form-control" id="registerName" placeholder="Digite seu nome" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="registerSlug">Slug</label>
+                                <input type="text" class="form-control" id="registerSlug" placeholder="Digite o slug único" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="registerEmail">E-mail</label>
+                                <input type="email" class="form-control" id="registerEmail" placeholder="Digite seu e-mail" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="registerPassword">Senha</label>
+                                <input type="password" class="form-control" id="registerPassword" placeholder="Digite sua senha" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="registerPasswordConfirm">Confirmar Senha</label>
+                                <input type="password" class="form-control" id="registerPasswordConfirm" placeholder="Confirme sua senha" required>
+                            </div>
+                            <button type="button" class="btn btn-primary" id="registerSubmit" disabled onclick="registerAccount()">Registrar</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <!-- Rodapé do Modal -->
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
 
 <!-- Modal -->
 <div class="modal fade" id="retransmitUrlsModal" tabindex="-1" role="dialog" aria-labelledby="retransmitUrlsModalLabel" aria-hidden="true">
@@ -119,8 +196,6 @@
         </div>
     </div>
 </div>
-
-
 
 <div class="modal fade" id="featureModal" tabindex="-1" aria-labelledby="featureModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">

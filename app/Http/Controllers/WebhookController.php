@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Url;
 use App\Models\Webhook;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -36,6 +37,13 @@ class WebhookController extends Controller
     public function view(string $urlHash)
     {
         try {
+            // Verifica se o usuário está autenticado
+            if (Auth::check()) {
+                // Redireciona para a rota com o slug da conta autenticada
+                $slug = Auth::user()->slug; // Obtém o slug do usuário logado
+                return redirect()->route('account.view-slug', ['slug' => $slug]);
+            }
+
             $url = Url::where('hash', $urlHash)
                 ->first();
 
@@ -59,6 +67,7 @@ class WebhookController extends Controller
     public function listener(Request $request, string $urlHash)
     {
         try {
+
             $url = Url::where('hash', $urlHash)->first();
             if (!$url) {
                 return response()->json(['status' => 'error', 'message' => 'Hash de URL inválido'], 404);

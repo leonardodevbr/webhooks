@@ -6,6 +6,8 @@ use App\Models\Account;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class AccountController extends Controller
 {
@@ -30,23 +32,32 @@ class AccountController extends Controller
      */
     public function register(Request $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'slug' => 'required|string|max:255|unique:accounts,slug',
-            'email' => 'required|email|unique:accounts,email',
-            'password' => 'required|string|min:8|confirmed',
-        ]);
+        try {
+            $validated = $request->validate([
+                'name' => 'required|string|max:255',
+                'slug' => 'required|string|max:255|unique:accounts,slug',
+                'email' => 'required|email|unique:accounts,email',
+                'password' => 'required|string|min:8|confirmed',
+            ]);
 
-        $account = Account::create([
-            'name' => $request->input('name'),
-            'slug' => $request->input('slug'),
-            'email' => $request->input('email'),
-            'password' => Hash::make($request->input('password')),
-        ]);
+            $account = Account::create([
+                'hash' => Str::uuid(),
+                'name' => $validated['name'],
+                'slug' => $validated['slug'],
+                'email' => $validated['email'],
+                'password' => Hash::make($validated['password']),
+            ]);
 
-        Auth::login($account);
+            Auth::login($account);
 
-        return redirect()->route('webhook.create-url')->with('success', 'Conta criada com sucesso!');
+            return response()->json([
+                'success' => 'Conta criada com sucesso!',
+                'redirect' => route('webhook.create-url'),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Erro ao registrar conta: '.$e->getMessage());
+            return response()->json(['error' => 'Erro ao registrar a conta.'], 500);
+        }
     }
 
     /**
@@ -54,13 +65,24 @@ class AccountController extends Controller
      */
     public function login(Request $request)
     {
-        $credentials = $request->only('email', 'password');
+        try {
+            $validated = $request->validate([
+                'email' => 'required|email',
+                'password' => 'required|string',
+            ]);
 
-        if (Auth::attempt($credentials)) {
-            return redirect()->route('webhook.create-url');
+            if (Auth::attempt($validated)) {
+                return response()->json([
+                    'success' => 'Login realizado com sucesso!',
+                    'redirect' => route('webhook.create-url'),
+                ]);
+            }
+
+            return response()->json(['error' => 'Credenciais inválidas.'], 401);
+        } catch (\Exception $e) {
+            Log::error('Erro ao realizar login: '.$e->getMessage());
+            return response()->json(['error' => 'Erro ao realizar login.'], 500);
         }
-
-        return back()->withErrors(['email' => 'Credenciais inválidas']);
     }
 
     /**
@@ -68,7 +90,48 @@ class AccountController extends Controller
      */
     public function logout()
     {
-        Auth::logout();
-        return redirect()->route('webhook.create-url');
+        try {
+            Auth::logout();
+            return response()->json([
+                'success' => 'Logout realizado com sucesso.',
+                'redirect' => route('webhook.create-url'),
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Erro ao realizar logout: '.$e->getMessage());
+            return response()->json(['error' => 'Erro ao realizar logout.'], 500);
+        }
     }
+
+    public function status()
+    {
+        try {
+            if (Auth::check()) {
+                $user = Auth::user();
+
+                // Retorna os dados do usuário autenticado
+                return response()->json([
+                    'success' => true,
+                    'data' => $user->only(['id', 'name', 'email', 'slug']),
+                ]);
+            }
+
+            // Usuário não autenticado
+            return response()->json([
+                'success' => false,
+                'message' => 'Usuário não autenticado.',
+            ], 401);
+        } catch (\Exception $e) {
+            // Tratamento de erro genérico
+            Log::error('Erro ao verificar status de autenticação:', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Erro ao processar a solicitação.',
+            ], 500);
+        }
+    }
+
 }
