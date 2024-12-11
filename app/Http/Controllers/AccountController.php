@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Account;
+use App\Models\Url;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
 class AccountController extends Controller
@@ -16,6 +18,15 @@ class AccountController extends Controller
      */
     public function showRegisterForm()
     {
+        if (Auth::check()) {
+            $account = Auth::user();
+            $url = $account->urls()->first();
+            return redirect()->route('account.webhook.view', [
+                'account_slug' => $account->slug,
+                'url_hash' => $url->hash,
+            ]);
+        }
+
         return view('account.register');
     }
 
@@ -24,6 +35,15 @@ class AccountController extends Controller
      */
     public function showLoginForm()
     {
+        if (Auth::check()) {
+            $account = Auth::user();
+            $url = $account->urls()->first();
+            return redirect()->route('account.webhook.view', [
+                'account_slug' => $account->slug,
+                'url_hash' => $url->hash,
+            ]);
+        }
+
         return view('account.login');
     }
 
@@ -32,33 +52,60 @@ class AccountController extends Controller
      */
     public function register(Request $request)
     {
-        try {
-            $validated = $request->validate([
-                'name' => 'required|string|max:255',
-                'slug' => 'required|string|max:255|unique:accounts,slug',
-                'email' => 'required|email|unique:accounts,email',
-                'password' => 'required|string|min:8|confirmed',
-            ]);
+        // Valida manualmente para capturar e retornar os erros
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:accounts,email',
+            'password' => 'required|string|min:8|confirmed',
+        ]);
 
+        if ($validator->fails()) {
+            // Retorna os erros como JSON
+            return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        try {
+            $validated = $validator->validated();
+
+            $slug = $this->generateUniqueSlug($validated['name'], Account::class);
             $account = Account::create([
                 'hash' => Str::uuid(),
                 'name' => $validated['name'],
-                'slug' => $validated['slug'],
+                'slug' => $slug,
                 'email' => $validated['email'],
                 'password' => Hash::make($validated['password']),
             ]);
 
             Auth::login($account);
+            $ip = request()->ip();
+
+            $url = Url::where('ip_address', $ip)->whereNull('account_id')->first();
+
+            if ($url) {
+                // Associa a URL existente à conta
+                $url->update(['account_id' => $account->id]);
+            } else {
+                // Cria uma nova URL vinculada à conta
+                $url = Url::create([
+                    'account_id' => $account->id,
+                    'ip_address' => $ip,
+                    'hash' => Str::uuid(),
+                ]);
+            }
 
             return response()->json([
                 'success' => 'Conta criada com sucesso!',
-                'redirect' => route('webhook.create-url'),
+                'redirect' => route('account.webhook.view', [
+                    'account_slug' => $account->slug,
+                    'url_hash' => $url->hash
+                ]),
             ]);
         } catch (\Exception $e) {
             Log::error('Erro ao registrar conta: '.$e->getMessage());
             return response()->json(['error' => 'Erro ao registrar a conta.'], 500);
         }
     }
+
 
     /**
      * Realizar login.
@@ -132,6 +179,21 @@ class AccountController extends Controller
                 'message' => 'Erro ao processar a solicitação.',
             ], 500);
         }
+    }
+
+
+    public function generateUniqueSlug($name, $model)
+    {
+        $slug = Str::slug($name);
+        $originalSlug = $slug;
+
+        $i = 1;
+        while ($model::where('slug', $slug)->exists()) {
+            $slug = "{$originalSlug}-{$i}";
+            $i++;
+        }
+
+        return $slug;
     }
 
 }

@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Route;
 
 // Home e Autenticação
 Route::get('/', [WebhookController::class, 'createUrl'])->name('webhook.create');
+Route::post('/create-new', [WebhookController::class, 'createNewUrl'])->name('webhook.create-new-url');
 
 // Webhooks Públicos
 Route::any('/{url_hash}', [WebhookController::class, 'listener'])->name('webhook.listener');
@@ -42,8 +43,10 @@ Route::prefix('webhook-retransmission')->group(function () {
 
 // Account
 Route::prefix('account')->group(function () {
-    Route::post('/register', [AccountController::class, 'register'])->name('account.register'); // Público
-    Route::post('/login', [AccountController::class, 'login'])->name('account.login'); // Público
+    Route::get('/register', [AccountController::class, 'showRegisterForm'])->name('form.register'); // Público
+    Route::post('/register', [AccountController::class, 'register'])->name('register'); // Público
+    Route::get('/login', [AccountController::class, 'showLoginForm'])->name('form.login'); // Público
+    Route::post('/login', [AccountController::class, 'login'])->name('login'); // Público
 
     // Apenas usuários autenticados podem acessar a rota de logout
     Route::post('/logout', [AccountController::class, 'logout'])
@@ -53,7 +56,7 @@ Route::prefix('account')->group(function () {
 
 //// URLs e Webhooks vinculados a contas
 Route::prefix('{account_slug}')->middleware('auth')->group(function () {
-    Route::get('/{url_slug}', [WebhookController::class, 'listener'])->name('webhook.listener');
-    Route::get('/view/{url_slug}', [WebhookController::class, 'view'])->name('webhook.view');
-    Route::post('/create-url', [WebhookController::class, 'createNewUrl'])->name('webhook.create');
+    Route::get('/{url_slug}', [WebhookController::class, 'listener'])->name('account.webhook.listener');
+    Route::get('/view/{url_hash}', [WebhookController::class, 'authView'])->name('account.webhook.view');
+    Route::post('/create-url', [WebhookController::class, 'createNewUrl'])->name('account.webhook.create');
 });

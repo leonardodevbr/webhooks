@@ -106,28 +106,24 @@
                     </div>
                     <!-- Registro -->
                     <div class="tab-pane fade" id="register" role="tabpanel" aria-labelledby="register-tab">
-                        <form id="registerForm">
+                        <form id="registerForm" onsubmit="event.preventDefault(); registerAccount();">
                             <div class="form-group">
                                 <label for="registerName">Nome</label>
-                                <input type="text" class="form-control" id="registerName" placeholder="Digite seu nome" required>
+                                <input type="text" class="form-control" id="registerName" name="name" required>
                             </div>
                             <div class="form-group">
-                                <label for="registerSlug">Slug</label>
-                                <input type="text" class="form-control" id="registerSlug" placeholder="Digite o slug único" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="registerEmail">E-mail</label>
-                                <input type="email" class="form-control" id="registerEmail" placeholder="Digite seu e-mail" required>
+                                <label for="registerEmail">Email</label>
+                                <input type="email" class="form-control" id="registerEmail" name="email" required>
                             </div>
                             <div class="form-group">
                                 <label for="registerPassword">Senha</label>
-                                <input type="password" class="form-control" id="registerPassword" placeholder="Digite sua senha" required>
+                                <input type="password" class="form-control" id="registerPassword" name="password" required>
                             </div>
                             <div class="form-group">
                                 <label for="registerPasswordConfirm">Confirmar Senha</label>
-                                <input type="password" class="form-control" id="registerPasswordConfirm" placeholder="Confirme sua senha" required>
+                                <input type="password" class="form-control" id="registerPasswordConfirm" name="password_confirmation" required>
                             </div>
-                            <button type="button" class="btn btn-primary" id="registerSubmit" disabled onclick="registerAccount()">Registrar</button>
+                            <button type="submit" class="btn btn-primary" id="registerSubmit" disabled>Registrar</button>
                         </form>
                     </div>
                 </div>
@@ -239,7 +235,6 @@
         </div>
     </div>
 </div>
-
 @routes
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
@@ -252,8 +247,8 @@
     };
 </script>
 <script>
-    window.urlHash = '{{ $url->hash }}';
-    window.urlId = '{{ $url->id }}';
+    window.urlHash = '{{ $url->hash ?? null}}';
+    window.urlId = '{{ $url->id ?? null}}';
 </script>
 <script src="{{ asset('js/scripts.js') }}"></script>
 
