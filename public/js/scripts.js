@@ -140,8 +140,13 @@ document.addEventListener("DOMContentLoaded", async () => {
     updateNotificationButton(notificationsEnabled);
     $('[data-toggle="tooltip"]').tooltip();
 
-    document.getElementById('retransmitUrlsModal').addEventListener('show.bs.modal', () => {
+    $('#retransmitUrlsModal').on('shown.bs.modal', () => {
         displayRetransmissionUrls(retransmitUrls);
+    });
+
+    $('#accountModal').on('shown.bs.modal', () => {
+        validateForm('loginForm', 'loginSubmit');
+        validateForm('registerForm', 'registerSubmit');
     });
 });
 
@@ -238,6 +243,9 @@ async function addRetransmissionUrl() {
 
 
 async function loadRetransmissionUrls() {
+    if(urlId === "" || urlId === undefined){
+        return;
+    }
     try {
         const response = await fetch(route('webhook.retransmission.list-for-url', {url_id: urlId}), {method: 'GET'});
 
@@ -324,7 +332,7 @@ async function createNewUrl() {
         document.body.appendChild(overlay);
 
         try {
-            const response = await fetch(route('url.create-new-url'), {
+            const response = await fetch(route('webhook.create-new-url'), {
                 method: 'POST', headers: {
                     'Content-Type': 'application/json'
                 }
@@ -634,6 +642,10 @@ async function fetchWebhooks() {
 }
 
 function updateNotificationButton(isEnabled) {
+    if(urlId === "" || urlId === undefined){
+        return;
+    }
+
     const button = document.getElementById("toggleNotifications");
     button.innerHTML = isEnabled ? "<i class='fa fa-bell-slash-o'></i>" : "<i class='fa fa-bell-o'></i>";
 
@@ -672,3 +684,164 @@ function toggleNotifications() {
         location.reload();
     }
 }
+
+// Validação dinâmica dos formulários
+function validateForm(formId, submitButtonId) {
+    const form = document.getElementById(formId);
+    const button = document.getElementById(submitButtonId);
+
+    form.addEventListener('input', () => {
+        // Filtra apenas os campos de entrada do formulário
+        const fields = Array.from(form.elements).filter(input =>
+            input.tagName === 'INPUT' || input.tagName === 'TEXTAREA'
+        );
+
+        // Verifica se todos os campos estão preenchidos
+        const allFieldsFilled = fields.every(input => input.value.trim() !== '');
+
+        // Ativa ou desativa o botão
+        button.disabled = !allFieldsFilled;
+    });
+}
+
+async function loginAccount() {
+    const button = document.getElementById('loginSubmit');
+    button.disabled = true;
+    button.innerHTML = 'Processando...';
+
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value.trim();
+
+    try {
+        const response = await fetch(route('login'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            updateAccountButton(data.user);
+            $('#accountModal').modal('hide');
+        } else {
+            alert(data.error || 'Erro ao fazer login.');
+        }
+    } catch (error) {
+        console.error('Erro ao fazer login:', error);
+        alert('Erro ao processar o login.');
+    } finally {
+        button.disabled = false;
+        button.innerHTML = 'Entrar';
+    }
+}
+
+async function registerAccount() {
+    const button = document.getElementById('registerSubmit');
+    button.disabled = true;
+    button.innerHTML = 'Processando...';
+
+    const name = document.getElementById('registerName').value.trim();
+    const email = document.getElementById('registerEmail').value.trim();
+    const password = document.getElementById('registerPassword').value.trim();
+    const passwordConfirm = document.getElementById('registerPasswordConfirm').value.trim();
+
+    clearErrors(); // Limpa os erros anteriores
+
+    if (password !== passwordConfirm) {
+        showError('registerPasswordConfirm', 'As senhas não coincidem!');
+        button.disabled = false;
+        button.innerHTML = 'Registrar';
+        return;
+    }
+
+    try {
+        const response = await fetch(route('register'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                name,
+                email,
+                password,
+                password_confirmation: passwordConfirm
+            }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            $('#accountModal').modal('hide'); // Fecha o modal
+            window.location.href = data.redirect; // Redireciona para a URL retornada
+        } else if (data.errors) {
+            // Exibe erros nos campos
+            Object.keys(data.errors).forEach(field => {
+                showError(`register${capitalize(field)}`, data.errors[field][0]);
+            });
+        } else {
+            alert(data.error || 'Erro ao registrar conta.');
+        }
+    } catch (error) {
+        console.error('Erro ao registrar conta:', error);
+        alert('Erro ao processar o registro.');
+    } finally {
+        button.disabled = false;
+        button.innerHTML = 'Registrar';
+    }
+}
+
+
+// Helper para exibir mensagens de erro
+function showError(fieldId, message) {
+    const field = document.getElementById(fieldId);
+    if (field) {
+        field.classList.add('is-invalid');
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'invalid-feedback';
+        errorDiv.innerText = message;
+        field.parentNode.appendChild(errorDiv);
+    }
+}
+
+// Helper para limpar mensagens de erro
+function clearErrors() {
+    document.querySelectorAll('.is-invalid').forEach(field => field.classList.remove('is-invalid'));
+    document.querySelectorAll('.invalid-feedback').forEach(errorDiv => errorDiv.remove());
+}
+
+// Helper para capitalizar a primeira letra (para mapear campos do Laravel para IDs do formulário)
+function capitalize(string) {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
+
+// Atualiza o botão de conta para um dropdown
+function updateAccountButton(user) {
+    const accountButton = document.getElementById('accountButton');
+    accountButton.innerHTML = `
+        <div class="dropdown">
+            <button class="btn btn-primary dropdown-toggle" type="button" id="accountDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                ${user.name}
+            </button>
+            <div class="dropdown-menu" aria-labelledby="accountDropdown">
+                <a class="dropdown-item" href="#">Perfil</a>
+                <div class="dropdown-divider"></div>
+                <a class="dropdown-item text-danger" onclick="logoutAccount()">Sair</a>
+            </div>
+        </div>
+    `;
+}
+
+// Logout
+async function logoutAccount() {
+    try {
+        const response = await fetch(route('logout'), { method: 'POST' });
+        if (response.ok) {
+            location.reload(); // Atualiza a página após logout
+        } else {
+            alert('Erro ao fazer logout.');
+        }
+    } catch (error) {
+        console.error('Erro ao fazer logout:', error);
+    }
+}
+

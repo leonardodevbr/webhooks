@@ -2,11 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Url;
-use App\Models\Webhook;
 use App\Models\WebhookRetransmissionUrl;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 class WebhookUrlController extends Controller
@@ -41,7 +38,7 @@ class WebhookUrlController extends Controller
 
             return response()->json(['success' => 'URL de retransmissão adicionada com sucesso.', 'url' => $newUrl]);
         } catch (\Exception $e) {
-            Log::error("Erro ao adicionar URL de retransmissão: " . $e->getMessage());
+            Log::error("Erro ao adicionar URL de retransmissão: ".$e->getMessage());
             return response()->json(['error' => 'Erro ao adicionar URL de retransmissão.'], 500);
         }
     }

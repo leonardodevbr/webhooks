@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Url;
 use App\Models\Webhook;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -22,7 +23,7 @@ class WebhookController extends Controller
                 ['hash' => Str::uuid()]
             );
 
-            return redirect()->route('webhook.view', $url->hash)
+            return redirect()->route('webhook.view', [$url->hash])
                 ->with('info', 'URL de monitoramento criada.');
         } catch (\Exception $e) {
             Log::error('Erro ao criar URL: '.$e->getMessage());
@@ -36,7 +37,18 @@ class WebhookController extends Controller
     public function view(string $urlHash)
     {
         try {
+            // Verifica se o usuário está autenticado
+            if (Auth::check()) {
+                // Redireciona para a rota autenticada da conta
+                $account = Auth::user(); // Obtém o usuário autenticado
+                return redirect()->route('account.webhook.view', [
+                    'account_slug' => $account->slug,
+                    'url_hash' => $urlHash,
+                ]);
+            }
+
             $url = Url::where('hash', $urlHash)
+                ->whereNull('account_id')
                 ->first();
 
             if (!$url) {
@@ -56,9 +68,47 @@ class WebhookController extends Controller
         }
     }
 
+
+    public function authView(string $accountSlug, string $urlHash)
+    {
+        try {
+            // Verifica se a conta autenticada corresponde ao slug da rota
+            $account = Auth::user();
+
+            if (!$account || $account->slug !== $accountSlug) {
+                return redirect()->route('webhook.create-url')
+                    ->with('error', 'Você não tem permissão para acessar esta URL.');
+            }
+
+            // Busca a URL pelo hash e verifica se está associada à conta autenticada
+            $url = Url::where('hash', $urlHash)
+                ->where('account_id', $account->id)
+                ->first();
+
+            if (!$url) {
+                return redirect()->route('webhook.create-url')
+                    ->with('info', 'A URL solicitada não existe ou não pertence à sua conta. Criamos uma nova URL para você.');
+            }
+
+            // Busca os webhooks associados à URL
+            $webhooks = $url->webhooks()->orderBy('created_at', 'desc')->get();
+
+            return view('webhook.view', [
+                'webhooks' => $webhooks,
+                'url' => $url,
+                'account' => $account,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Erro ao exibir webhooks autenticados: '.$e->getMessage());
+            return response()->json(['error' => 'Erro ao processar a solicitação.'], 500);
+        }
+    }
+
+
     public function listener(Request $request, string $urlHash)
     {
         try {
+
             $url = Url::where('hash', $urlHash)->first();
             if (!$url) {
                 return response()->json(['status' => 'error', 'message' => 'Hash de URL inválido'], 404);

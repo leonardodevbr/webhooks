@@ -8,12 +8,13 @@ namespace App\Models;
 
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Database\Eloquent\Model;
+use Illuminate\Contracts\Auth\Authenticatable as AuthenticatableContract;
+use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Class Account
- * 
+ *
  * @property int $id
  * @property string $hash
  * @property string $name
@@ -22,12 +23,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $password
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
- * 
+ *
  * @property Collection|Url[] $urls
  *
  * @package App\Models
  */
-class Account extends Model
+class Account extends Authenticatable implements AuthenticatableContract
 {
 	protected $table = 'accounts';
 

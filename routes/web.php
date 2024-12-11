@@ -1,11 +1,13 @@
 <?php
 
+use App\Http\Controllers\AccountController;
 use App\Http\Controllers\WebhookController;
 use App\Http\Controllers\WebhookUrlController;
 use Illuminate\Support\Facades\Route;
 
 // Home e Autenticação
 Route::get('/', [WebhookController::class, 'createUrl'])->name('webhook.create');
+Route::post('/create-new', [WebhookController::class, 'createNewUrl'])->name('webhook.create-new-url');
 
 // Webhooks Públicos
 Route::any('/{url_hash}', [WebhookController::class, 'listener'])->name('webhook.listener');
@@ -15,7 +17,9 @@ Route::delete('/webhook/{id}', [WebhookController::class, 'delete'])->name('webh
 Route::delete('/{url_hash}/webhook/delete-all', [WebhookController::class, 'deleteAll'])->name('webhook.delete-all');
 Route::get('/webhook/{id}', [WebhookController::class, 'loadSingle'])->name('webhook.load-single');
 Route::post('/webhook/{id}/retransmit', [WebhookController::class, 'retransmitWebhook'])->name('webhook.retransmit');
-Route::patch('/webhook/{id}/retransmitted', [WebhookController::class, 'markRetransmitted'])->name('webhook.mark-retransmitted');
+Route::patch('/webhook/{id}/retransmitted', [WebhookController::class, 'markRetransmitted'])->name(
+    'webhook.mark-retransmitted'
+);
 Route::patch('/webhook/{id}/viewed', [WebhookController::class, 'markAsViewed'])->name('webhook.mark-viewed');
 
 Route::prefix('webhook-retransmission')->group(function () {
@@ -34,20 +38,25 @@ Route::prefix('webhook-retransmission')->group(function () {
     // Rota para listar URLs de retransmissão associadas a uma URL específica
     Route::get('urls/{url_id}', [WebhookUrlController::class, 'listRetransmissionUrlsForUrl'])
         ->name('webhook.retransmission.list-for-url');
-
 });
 
 
-//// Account
-//Route::prefix('account')->group(function () {
-//    Route::post('/register', [AccountController::class, 'register'])->name('account.register');
-//    Route::post('/login', [AccountController::class, 'login'])->name('account.login');
-//    Route::post('/logout', [AccountController::class, 'logout'])->name('account.logout');
-//});
-//
+// Account
+Route::prefix('account')->group(function () {
+    Route::get('/register', [AccountController::class, 'showRegisterForm'])->name('form.register'); // Público
+    Route::post('/register', [AccountController::class, 'register'])->name('register'); // Público
+    Route::get('/login', [AccountController::class, 'showLoginForm'])->name('form.login'); // Público
+    Route::post('/login', [AccountController::class, 'login'])->name('login'); // Público
+
+    // Apenas usuários autenticados podem acessar a rota de logout
+    Route::post('/logout', [AccountController::class, 'logout'])
+        ->middleware('auth')
+        ->name('account.logout');
+});
+
 //// URLs e Webhooks vinculados a contas
-//Route::prefix('{account_slug}')->group(function () {
-//    Route::get('/{url_slug}', [WebhookController::class, 'listener'])->name('webhook.listener');
-//    Route::get('/view/{url_slug}', [WebhookController::class, 'view'])->name('webhook.view');
-//    Route::post('/create-url', [WebhookController::class, 'createNewUrl'])->name('webhook.create');
-//});
+Route::prefix('{account_slug}')->middleware('auth')->group(function () {
+    Route::get('/{url_slug}', [WebhookController::class, 'listener'])->name('account.webhook.listener');
+    Route::get('/view/{url_hash}', [WebhookController::class, 'authView'])->name('account.webhook.view');
+    Route::post('/create-url', [WebhookController::class, 'createNewUrl'])->name('account.webhook.create');
+});
