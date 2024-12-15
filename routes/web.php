@@ -51,7 +51,7 @@ Route::prefix('account')->group(function () {
     // Apenas usuários autenticados podem acessar a rota de logout
     Route::post('/logout', [AccountController::class, 'logout'])
         ->middleware('auth')
-        ->name('account.logout');
+        ->name('logout');
 });
 
 //// URLs e Webhooks vinculados a contas

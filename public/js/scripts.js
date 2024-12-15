@@ -662,26 +662,23 @@ function showNotification(data) {
     new Notification("Novo Webhook Recebido", options);
 }
 
-function toggleNotifications() {
+function toggleNotifications(event) {
+    if (event) event.stopPropagation(); // Previne o fechamento do dropdown
+
     const notificationsEnabled = localStorage.getItem("notificationsEnabled") === "true";
 
     if (!notificationsEnabled) {
         Notification.requestPermission().then(permission => {
             if (permission === "granted") {
                 localStorage.setItem("notificationsEnabled", "true");
-                localStorage.setItem("showInitialNotification", "true");
-                updateNotificationButton(true);
-                location.reload();
+                alert("Notificações ativadas!");
             } else {
-                alert("Permissão para notificações negada. Clique em Ok para recarregar a página.");
-                location.reload();
+                alert("Permissão para notificações negada.");
             }
         });
     } else {
         localStorage.setItem("notificationsEnabled", "false");
-        updateNotificationButton(false);
-        alert("Notificações desativadas. Clique em Ok para recarregar a página.");
-        location.reload();
+        alert("Notificações desativadas.");
     }
 }
 
@@ -722,8 +719,8 @@ async function loginAccount() {
         const data = await response.json();
 
         if (response.ok) {
-            updateAccountButton(data.user);
-            $('#accountModal').modal('hide');
+            updateAccountButton(data.user); // Atualiza o botão dinamicamente
+            $('#accountModal').modal('hide'); // Fecha o modal
         } else {
             alert(data.error || 'Erro ao fazer login.');
         }
@@ -813,11 +810,9 @@ function capitalize(string) {
     return string.charAt(0).toUpperCase() + string.slice(1);
 }
 
-
-// Atualiza o botão de conta para um dropdown
 function updateAccountButton(user) {
     const accountButton = document.getElementById('accountButton');
-    accountButton.innerHTML = `
+    accountButton.outerHTML = `
         <div class="dropdown">
             <button class="btn btn-primary dropdown-toggle" type="button" id="accountDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                 ${user.name}
@@ -825,18 +820,17 @@ function updateAccountButton(user) {
             <div class="dropdown-menu" aria-labelledby="accountDropdown">
                 <a class="dropdown-item" href="#">Perfil</a>
                 <div class="dropdown-divider"></div>
-                <a class="dropdown-item text-danger" onclick="logoutAccount()">Sair</a>
+                <a class="dropdown-item text-danger" href="#" onclick="logoutAccount()">Sair</a>
             </div>
         </div>
     `;
 }
 
-// Logout
 async function logoutAccount() {
     try {
         const response = await fetch(route('logout'), { method: 'POST' });
         if (response.ok) {
-            location.reload(); // Atualiza a página após logout
+            location.reload(); // Recarrega a página para exibir o botão de login novamente
         } else {
             alert('Erro ao fazer logout.');
         }
