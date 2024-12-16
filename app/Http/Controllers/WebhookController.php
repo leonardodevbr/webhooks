@@ -19,7 +19,7 @@ class WebhookController extends Controller
             $ip = request()->ip();
 
             $url = Url::firstOrCreate(
-                ['ip_address' => $ip],
+                ['ip_address' => $ip, 'account_id' => auth()->id() ?? null],
                 ['hash' => Str::uuid()]
             );
 
@@ -37,10 +37,8 @@ class WebhookController extends Controller
     public function view(string $urlHash)
     {
         try {
-            // Verifica se o usuário está autenticado
             if (Auth::check()) {
-                // Redireciona para a rota autenticada da conta
-                $account = Auth::user(); // Obtém o usuário autenticado
+                $account = Auth::user();
                 return redirect()->route('account.webhook.view', [
                     'account_slug' => $account->slug,
                     'url_hash' => $urlHash,
@@ -86,8 +84,8 @@ class WebhookController extends Controller
                 ->first();
 
             if (!$url) {
-                return redirect()->route('webhook.create-url')
-                    ->with('info', 'A URL solicitada não existe ou não pertence à sua conta. Criamos uma nova URL para você.');
+                return redirect()->route('webhook.create')
+                    ->with('info', 'A URL solicitada não existe. Criamos uma nova URL para você.');
             }
 
             // Busca os webhooks associados à URL

@@ -119,10 +119,17 @@ class AccountController extends Controller
             ]);
 
             if (Auth::attempt($validated)) {
+                $account = Auth::user();
+                $url = $account->urls()->first();
+
                 return response()->json([
                     'ok' => true,
                     'success' => 'Login realizado com sucesso!',
-                    'redirect' => route('webhook.create'),
+                    'user' => $account,
+                    'redirect' => route('account.webhook.view', [
+                        'account_slug' => $account->slug,
+                        'url_hash' => $url->hash
+                    ]),
                 ]);
             }
 

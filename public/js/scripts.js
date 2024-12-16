@@ -719,8 +719,12 @@ async function loginAccount() {
         const data = await response.json();
 
         if (response.ok) {
-            updateAccountButton(data.user); // Atualiza o botão dinamicamente
             $('#accountModal').modal('hide'); // Fecha o modal
+            if (data.redirect) {
+                window.location.href = data.redirect; // Redireciona para a URL fornecida
+            } else {
+                alert('Login realizado com sucesso, mas redirecionamento está ausente.');
+            }
         } else {
             alert(data.error || 'Erro ao fazer login.');
         }
@@ -808,22 +812,6 @@ function clearErrors() {
 // Helper para capitalizar a primeira letra (para mapear campos do Laravel para IDs do formulário)
 function capitalize(string) {
     return string.charAt(0).toUpperCase() + string.slice(1);
-}
-
-function updateAccountButton(user) {
-    const accountButton = document.getElementById('accountButton');
-    accountButton.outerHTML = `
-        <div class="dropdown">
-            <button class="btn btn-primary dropdown-toggle" type="button" id="accountDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                ${user.name}
-            </button>
-            <div class="dropdown-menu" aria-labelledby="accountDropdown">
-                <a class="dropdown-item" href="#">Perfil</a>
-                <div class="dropdown-divider"></div>
-                <a class="dropdown-item text-danger" href="#" onclick="logoutAccount()">Sair</a>
-            </div>
-        </div>
-    `;
 }
 
 async function logoutAccount() {
