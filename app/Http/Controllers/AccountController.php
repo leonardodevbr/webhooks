@@ -119,9 +119,17 @@ class AccountController extends Controller
             ]);
 
             if (Auth::attempt($validated)) {
+                $account = Auth::user();
+                $url = $account->urls()->first();
+
                 return response()->json([
+                    'ok' => true,
                     'success' => 'Login realizado com sucesso!',
-                    'redirect' => route('webhook.create-url'),
+                    'user' => $account,
+                    'redirect' => route('account.webhook.view', [
+                        'account_slug' => $account->slug,
+                        'url_hash' => $url->hash
+                    ]),
                 ]);
             }
 
@@ -140,8 +148,9 @@ class AccountController extends Controller
         try {
             Auth::logout();
             return response()->json([
+                'ok' => true,
                 'success' => 'Logout realizado com sucesso.',
-                'redirect' => route('webhook.create-url'),
+                'redirect' => route('webhook.create'),
             ]);
         } catch (\Exception $e) {
             Log::error('Erro ao realizar logout: '.$e->getMessage());

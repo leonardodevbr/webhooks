@@ -48,20 +48,39 @@
             <div class="d-flex justify-content-between">
                 <h5>Detalhes da requisição:</h5>
                 <div>
-                    <button class="btn m-0 btn-info btn-sm" id="toggleNotifications"
-                            onclick="toggleNotifications()">
-                        <i class="fa fa-bell-o"></i>
-                    </button>
-                    <button class="btn m-0 btn-primary btn-sm" data-toggle="modal" data-target="#retransmitUrlsModal">
-                        Gerenciar URLs de Retransmissão
-                    </button>
-                    <button class="btn btn-outline-info btn-sm" id="accountButton" data-toggle="modal" data-target="#accountModal">
-                        Fazer Login
-                    </button>
+                    @if (auth()->check())
+                        <div class="dropdown">
+                            <button class="btn btn-primary dropdown-toggle" type="button" id="accountDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                                <i class="fa fa-user"></i> {{-- Ícone de usuário --}}
+                            </button>
+                            <div class="dropdown-menu dropdown-menu-right" aria-labelledby="accountDropdown">
+                                <a class="dropdown-item" href="#">Perfil</a>
+                                <a class="dropdown-item" href="#" onclick="toggleNotifications(event)">
+                                    Notificações <i class="fa fa-bell-o"></i>
+                                </a>
+                                <a class="dropdown-item" href="#" data-toggle="modal" data-target="#retransmitUrlsModal">
+                                    Gerenciar URLs de Retransmissão <i class="fa fa-link"></i>
+                                </a>
+                                <div class="dropdown-divider"></div>
+                                <a class="dropdown-item text-danger" href="#" onclick="logoutAccount()">Sair</a>
+                            </div>
+                        </div>
+                    @else
+                        <button class="btn m-0 btn-info btn-sm" id="toggleNotifications"
+                                onclick="toggleNotifications()">
+                            <i class="fa fa-bell-o"></i>
+                        </button>
+                        <button class="btn m-0 btn-primary btn-sm" data-toggle="modal" data-target="#retransmitUrlsModal">
+                            Gerenciar URLs de Retransmissão
+                        </button>
+                        <button class="btn btn-outline-info btn-sm" id="accountButton" data-toggle="modal" data-target="#accountModal">
+                            Fazer Login
+                        </button>
+                    @endif
                 </div>
             </div>
             <div class="dropdown-divider my-3"></div>
-            <div id="webhookDetails" class="webhook-details">Selecione um webhook para visalizar os
+            <div id="webhookDetails" class="webhook-details">Selecione um webhook para visualizar os
                 detalhes.
             </div>
         </div>
