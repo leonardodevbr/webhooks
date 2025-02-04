@@ -120,7 +120,7 @@ class WebhookController extends Controller
                 $this->triggerPusherEvent(['id' => $webhook->id], 'new-webhook');
 
                 $retransmissionUrls = $url->webhook_retransmission_urls()->get();
-                if ($retransmissionUrls->count() > 0) {
+                if ($retransmissionUrls->isNotEmpty()) {
                     $this->retransmitWebhook($webhook->id);
                 }
 
@@ -358,13 +358,13 @@ class WebhookController extends Controller
                 return response()->json(['error' => 'Nenhum webhook encontrado para retransmmissão.'], 404);
             }
 
-            $url = $webhook->url; // Assume que o relacionamento 'url' está configurado no modelo Webhook
+            $url = $webhook->url;
             if (!$url) {
                 return response()->json(['error' => 'Webhook não está associado a nenhuma URL.'], 404);
             }
 
-            $retransmissionUrls = $url->webhook_retransmission_urls()->get(); // Apenas URLs online
-            if (!$retransmissionUrls) {
+            $retransmissionUrls = $url->webhook_retransmission_urls()->get();
+            if ($retransmissionUrls->isEmpty()) {
                 return response()->json(['error' => 'Webhook não possui nenhuma URL de retransmissão cadastrada.'], 404);
             }
 
@@ -383,6 +383,8 @@ class WebhookController extends Controller
                     $headers = is_string($webhook->headers)
                         ? json_decode($webhook->headers, true)
                         : ($webhook->headers ?? []);
+
+                    unset($headers['host']);
 
                     $response = Http::withHeaders($headers)
                         ->send($webhook->method, $fullUrl, [
