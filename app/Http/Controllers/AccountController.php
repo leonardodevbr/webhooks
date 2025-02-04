@@ -120,7 +120,16 @@ class AccountController extends Controller
 
             if (Auth::attempt($validated)) {
                 $account = Auth::user();
+
+                // Garante que a conta tenha uma URL associada
                 $url = $account->urls()->first();
+                if (!$url) {
+                    $url = Url::create([
+                        'account_id' => $account->id,
+                        'ip_address' => request()->ip(),
+                        'hash' => Str::uuid(),
+                    ]);
+                }
 
                 return response()->json([
                     'ok' => true,
@@ -139,6 +148,7 @@ class AccountController extends Controller
             return response()->json(['error' => 'Erro ao realizar login.'], 500);
         }
     }
+
 
     /**
      * Realizar logout.
