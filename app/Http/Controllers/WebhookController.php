@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Account;
 use App\Models\Url;
 use App\Models\Webhook;
 use Illuminate\Http\Request;
@@ -74,7 +75,7 @@ class WebhookController extends Controller
             $account = Auth::user();
 
             if (!$account || $account->slug !== $accountSlug) {
-                return redirect()->route('webhook.create-url')
+                return redirect()->route('webhook.create-new-url')
                     ->with('error', 'Você não tem permissão para acessar esta URL.');
             }
 
@@ -102,16 +103,37 @@ class WebhookController extends Controller
         }
     }
 
+    public function publicListener(Request $request, string $urlHash)
+    {
+        $url = Url::where('hash', $urlHash)->first();
 
-    public function listener(Request $request, string $urlHash)
+        if (!$url) {
+            return response()->json(['status' => 'error', 'message' => 'Hash de URL inválido'], 404);
+        }
+
+        return $this->processWebhook($request, $url);
+    }
+
+    public function authenticatedListener(Request $request, string $accountSlug, string $urlHash)
+    {
+        $account = Account::where('slug', $accountSlug)->first();
+
+        if (!$account) {
+            return response()->json(['status' => 'error', 'message' => 'Conta não encontrada'], 404);
+        }
+
+        $url = Url::where('hash', $urlHash)->where('account_id', $account->id)->first();
+
+        if (!$url) {
+            return response()->json(['status' => 'error', 'message' => 'Hash de URL inválido ou não pertence à conta autenticada'], 404);
+        }
+
+        return $this->processWebhook($request, $url);
+    }
+
+    private function processWebhook(Request $request, Url $url)
     {
         try {
-
-            $url = Url::where('hash', $urlHash)->first();
-            if (!$url) {
-                return response()->json(['status' => 'error', 'message' => 'Hash de URL inválido'], 404);
-            }
-
             $requestData = $this->extractRequestData($request, $url->id);
 
             $webhook = Webhook::create($requestData);
@@ -119,12 +141,16 @@ class WebhookController extends Controller
                 // Dispara o evento para o Pusher
                 $this->triggerPusherEvent(['id' => $webhook->id], 'new-webhook');
 
+                // Verifica se existem URLs de retransmissão e processa
                 $retransmissionUrls = $url->webhook_retransmission_urls()->get();
                 if ($retransmissionUrls->isNotEmpty()) {
                     $this->retransmitWebhook($webhook->id);
                 }
 
-                return response()->json(['message' => 'Webhook recebido.', 'data' => ['webhook_hash' => $webhook->hash]]);
+                return response()->json([
+                    'message' => 'Webhook recebido.',
+                    'data' => ['webhook_hash' => $webhook->hash]
+                ]);
             }
 
             return response()->json(['status' => 'error', 'message' => 'Erro ao registrar webhook'], 500);
@@ -330,13 +356,11 @@ class WebhookController extends Controller
     public function createNewUrl()
     {
         try {
-            // Gera um novo hash UUID para a URL
             $hash = Str::uuid();
             $ip = request()->ip();
 
-            // Cria e salva a nova URL no banco de dados
             $newUrl = Url::create([
-                'hash' => $hash,
+                'hash' => $hash->toString(),
                 'ip_address' => $ip
             ]);
 
@@ -355,12 +379,17 @@ class WebhookController extends Controller
             $webhook = Webhook::where('id', $webhookId)->first();
 
             if (!$webhook) {
-                return response()->json(['error' => 'Nenhum webhook encontrado para retransmmissão.'], 404);
+                return response()->json(['error' => 'Nenhum webhook encontrado para retransmissão.'], 404);
             }
 
             $url = $webhook->url;
             if (!$url) {
                 return response()->json(['error' => 'Webhook não está associado a nenhuma URL.'], 404);
+            }
+
+            // Se o usuário está autenticado, validar se o webhook pertence à conta do usuário
+            if (auth()->check() && $url->account_id !== auth()->id()) {
+                return response()->json(['error' => 'Acesso negado.'], 403);
             }
 
             $retransmissionUrls = $url->webhook_retransmission_urls()->get();
@@ -405,5 +434,4 @@ class WebhookController extends Controller
             return response()->json(['error' => 'Erro ao processar a solicitação.'], 500);
         }
     }
-
 }
