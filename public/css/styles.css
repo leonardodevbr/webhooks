@@ -1,7 +1,6 @@
 
 body {
     font-family: Arial, sans-serif;
-    display: flex;
     height: 100vh;
     margin: 0;
 }
@@ -19,7 +18,6 @@ body {
     min-height: 100vh; /* Igual à sidebar */
     flex-grow: 1;
     padding: 20px;
-    background-color: #f8f9fa; /* Fundo mais claro */
 }
 
 .btn-dark {
@@ -223,4 +221,8 @@ table.compact-table td {
 
 .url-list {
     max-height: 250px;
+}
+
+.urls-table td{
+    vertical-align: middle;
 }

@@ -20,6 +20,8 @@ Route::patch('/webhook/{id}/retransmitted', [WebhookController::class, 'markRetr
     'webhook.mark-retransmitted'
 );
 Route::patch('/webhook/{id}/viewed', [WebhookController::class, 'markAsViewed'])->name('webhook.mark-viewed');
+Route::get('/webhook/{id}/notification-status', [WebhookController::class, 'getNotificationStatus'])->name('webhook.get-notification-status');
+Route::patch('/webhook/{id}/toggle-notifications', [WebhookController::class, 'toggleNotifications'])->name('webhook.toggle-notifications');
 Route::any('/{url_hash}', [WebhookController::class, 'publicListener'])->name('webhook.listener');
 
 Route::prefix('webhook-retransmission')->group(function () {
@@ -56,6 +58,8 @@ Route::prefix('account')->group(function () {
 
 //// URLs e Webhooks vinculados a contas
 Route::prefix('{account_slug}')->middleware('auth')->group(function () {
+    Route::get('/urls', [WebhookController::class, 'listUrls'])->name('account.list-urls');
+    Route::patch('/urls/{id}/update-slug', [WebhookController::class, 'updateSlug'])->name('account.url.update-slug');
     Route::post('/create-url', [WebhookController::class, 'createNewUrl'])->name('account.webhook.create');
     Route::get('/view/{url_hash}', [WebhookController::class, 'authView'])->name('account.webhook.view');
     Route::any('/{url_hash}', [WebhookController::class, 'authenticatedListener'])->name('account.webhook.listener');
