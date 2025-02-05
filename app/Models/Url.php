@@ -21,6 +21,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $ip_address
  * @property int|null $account_id
  * @property string|null $slug
+ * @property bool $notifications_enabled
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * 
@@ -36,14 +37,16 @@ class Url extends Model
 	protected $table = 'urls';
 
 	protected $casts = [
-		'account_id' => 'int'
+		'account_id' => 'int',
+		'notifications_enabled' => 'bool'
 	];
 
 	protected $fillable = [
 		'hash',
 		'ip_address',
 		'account_id',
-		'slug'
+		'slug',
+		'notifications_enabled'
 	];
 
 	public function account(): BelongsTo

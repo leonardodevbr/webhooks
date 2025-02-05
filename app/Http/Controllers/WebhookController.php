@@ -20,7 +20,7 @@ class WebhookController extends Controller
             $ip = request()->ip();
 
             $url = Url::firstOrCreate(
-                ['ip_address' => $ip, 'account_id' => auth()->id() ?? null],
+                ['ip_address' => $ip, 'account_id' => auth()->check() ? auth()->id() : null],
                 ['hash' => Str::uuid()]
             );
 
@@ -434,4 +434,68 @@ class WebhookController extends Controller
             return response()->json(['error' => 'Erro ao processar a solicitação.'], 500);
         }
     }
+
+    public function listUrls(string $accountSlug)
+    {
+        $account = Account::where('slug', $accountSlug)->first();
+
+        if (!$account) {
+            return response()->json(['error' => 'Conta não encontrada.'], 404);
+        }
+
+        $urls = $account->urls()->get();
+
+        return view('account.list-urls', compact('urls'));
+    }
+
+    public function updateSlug(Request $request, string $accountSlug, int $id)
+    {
+        try {
+            $account = Account::where('slug', $accountSlug)->first();
+
+            if (!$account) {
+                return response()->json(['error' => 'Conta não encontrada.'], 404);
+            }
+
+            $url = Url::findOrFail($id);
+            $url->slug = $request->input('slug') ?: null;
+            $url->save();
+
+            return response()->json(['success' => true, 'slug' => $url->slug]);
+        } catch (\Exception $e) {
+            Log::error("Erro ao atualizar slug: " . $e->getMessage());
+            return response()->json(['error' => 'Erro ao atualizar slug.'], 500);
+        }
+    }
+
+    public function getNotificationStatus(int $id)
+    {
+        try {
+            $url = Url::findOrFail($id);
+            return response()->json([
+                'notifications_enabled' => $url->notifications_enabled
+            ]);
+        } catch (\Exception $e) {
+            Log::error("Erro ao buscar status de notificações: " . $e->getMessage());
+            return response()->json(['error' => 'Erro ao buscar status de notificações.'], 500);
+        }
+    }
+
+    public function toggleNotifications(int $id)
+    {
+        $url = Url::where('id', $id)->where('account_id', auth()->id())->first();
+
+        if (!$url) {
+            return response()->json(['error' => 'URL não encontrada'], 404);
+        }
+
+        $url->notifications_enabled = !$url->notifications_enabled;
+        $url->save();
+
+        return response()->json([
+            'success' => true,
+            'notifications_enabled' => $url->notifications_enabled
+        ]);
+    }
+
 }

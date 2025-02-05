@@ -3,7 +3,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     const pusherCluster = window.env.PUSHER_CLUSTER;
     const pusherChannel = window.env.PUSHER_CHANNEL;
 
-    const notificationsEnabled = localStorage.getItem("notificationsEnabled") === "true";
     const showInitialNotification = localStorage.getItem("showInitialNotification") === "true";
     const hasSeenModal = localStorage.getItem("hasSeenFeatureModal") === "true";
     window.retransmitUrls = await loadRetransmissionUrls();
@@ -57,6 +56,7 @@ document.addEventListener("DOMContentLoaded", async () => {
             addWebhookToTop(data);
 
             // Exibindo notificação, se permitido
+            let notificationsEnabled = await getNotificationStatus();
             if (notificationsEnabled && Notification.permission === "granted") {
                 showNotification(data);
             }
@@ -122,6 +122,8 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
     });
 
+    let notificationsEnabled = await getNotificationStatus();
+
     // Exibe a notificação inicial ao recarregar a página e autorizar
     if (showInitialNotification && notificationsEnabled && Notification.permission === "granted") {
         try {
@@ -149,6 +151,18 @@ document.addEventListener("DOMContentLoaded", async () => {
         validateForm('registerForm', 'registerSubmit');
     });
 });
+
+async function getNotificationStatus() {
+    try {
+        const response = await fetch(route('webhook.get-notification-status', { id: urlId }));
+        if (response.ok) {
+            const data = await response.json();
+            return data.notifications_enabled;
+        }
+    } catch (error) {
+        console.error("Erro ao carregar status das notificações:", error);
+    }
+}
 
 function displayRetransmissionUrls(retransmitUrls) {
     const tbody = document.getElementById('urlList'); // Corpo da tabela
@@ -642,16 +656,23 @@ async function fetchWebhooks() {
 }
 
 function updateNotificationButton(isEnabled) {
-    if(urlId === "" || urlId === undefined){
+    if (urlId === "" || urlId === undefined) {
         return;
     }
 
     const button = document.getElementById("toggleNotifications");
-    button.innerHTML = isEnabled ? "<i class='fa fa-bell-slash-o'></i>" : "<i class='fa fa-bell-o'></i>";
 
-    button.setAttribute('data-toggle', 'tooltip');
-    button.setAttribute('data-placement', 'left');
-    button.setAttribute('title', isEnabled ? 'Desativar Notificações' : 'Ativar Notificações');
+    if (!button) return;
+
+    button.innerHTML = isEnabled
+        ? "Desativar Notificações"
+        : "Ativar Notificações";
+
+    if (!button.classList.contains('dropdown-item')) {
+        button.setAttribute('data-toggle', 'tooltip');
+        button.setAttribute('data-placement', 'left');
+        button.setAttribute('title', isEnabled ? 'Desativar Notificações' : 'Ativar Notificações');
+    }
 }
 
 function showNotification(data) {
@@ -662,23 +683,46 @@ function showNotification(data) {
     new Notification("Novo Webhook Recebido", options);
 }
 
-function toggleNotifications(event) {
-    if (event) event.stopPropagation(); // Previne o fechamento do dropdown
+async function toggleNotifications(event) {
+    if (event) event.stopPropagation(); // Evita o fechamento do dropdown
 
-    const notificationsEnabled = localStorage.getItem("notificationsEnabled") === "true";
-
-    if (!notificationsEnabled) {
-        Notification.requestPermission().then(permission => {
-            if (permission === "granted") {
-                localStorage.setItem("notificationsEnabled", "true");
-                alert("Notificações ativadas!");
-            } else {
-                alert("Permissão para notificações negada.");
+    try {
+        const response = await fetch(route('webhook.toggle-notifications', { id: urlId }), {
+            method: 'PATCH',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Content-Type': 'application/json',
             }
         });
-    } else {
-        localStorage.setItem("notificationsEnabled", "false");
-        alert("Notificações desativadas.");
+
+        if (!response.ok) {
+            alert("Erro ao alterar notificações.");
+            return;
+        }
+
+        const data = await response.json();
+
+        if (data.success) {
+            if (data.notifications_enabled) {
+                Notification.requestPermission().then(permission => {
+                    if (permission === "granted") {
+                        updateNotificationButton(true);
+                        alert("Notificações ativadas!");
+                    } else {
+                        updateNotificationButton(false);
+                        alert("Permissão para notificações negada.");
+                    }
+                });
+            } else {
+                updateNotificationButton(false);
+                alert("Notificações desativadas.");
+            }
+        } else {
+            alert("Erro ao alterar notificações.");
+        }
+
+    } catch (error) {
+        console.error("Erro ao processar a solicitação:", error);
     }
 }
 
@@ -826,4 +870,3 @@ async function logoutAccount() {
         console.error('Erro ao fazer logout:', error);
     }
 }
-

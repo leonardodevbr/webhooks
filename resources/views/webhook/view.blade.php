@@ -14,8 +14,33 @@
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel="stylesheet" href="/css/styles.css">
+    <!-- CSRF Token -->
+    <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
 <body>
+<nav class="navbar navbar-light bg-dark px-3">
+    <span class="navbar-brand text-light">Monitor de Webhooks</span>
+
+    <div>
+        @if (auth()->check())
+            <div class="dropdown">
+                <button class="btn btn-light btn-sm dropdown-toggle" type="button" id="accountDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                    <i class="fa fa-user"></i> {{-- Ícone de usuário --}}
+                </button>
+                <div class="dropdown-menu dropdown-menu-right" aria-labelledby="accountDropdown">
+                    <a class="dropdown-item" href="#">Perfil</a>
+                    <a class="dropdown-item" href="{{route('account.list-urls', auth()->user()->slug)}}">Minhas URLs</a>
+                    <div class="dropdown-divider"></div>
+                    <a class="dropdown-item text-danger" href="#" onclick="logoutAccount()">Sair</a>
+                </div>
+            </div>
+        @else
+            <button class="btn btn-light btn-sm" id="accountButton" data-toggle="modal" data-target="#accountModal">
+                Fazer Login
+            </button>
+        @endif
+    </div>
+</nav>
 <div class="container-fluid">
     <div class="row">
         <div id="sidebar" class="col-12 col-lg-3 col-sm-4">
@@ -48,35 +73,19 @@
             <div class="d-flex justify-content-between">
                 <h5>Detalhes da requisição:</h5>
                 <div>
-                    @if (auth()->check())
-                        <div class="dropdown">
-                            <button class="btn btn-primary dropdown-toggle" type="button" id="accountDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                                <i class="fa fa-user"></i> {{-- Ícone de usuário --}}
-                            </button>
-                            <div class="dropdown-menu dropdown-menu-right" aria-labelledby="accountDropdown">
-                                <a class="dropdown-item" href="#">Perfil</a>
-                                <a class="dropdown-item" href="#" onclick="toggleNotifications(event)">
-                                    Notificações <i class="fa fa-bell-o"></i>
-                                </a>
-                                <a class="dropdown-item" href="#" data-toggle="modal" data-target="#retransmitUrlsModal">
-                                    Gerenciar URLs de Retransmissão <i class="fa fa-link"></i>
-                                </a>
-                                <div class="dropdown-divider"></div>
-                                <a class="dropdown-item text-danger" href="#" onclick="logoutAccount()">Sair</a>
-                            </div>
+                    <div class="dropdown">
+                        <button class="btn btn-link text-secondary" type="button" id="accountDropdown" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            <i class="fa fa-gears"></i>
+                        </button>
+                        <div class="dropdown-menu dropdown-menu-right" aria-labelledby="accountDropdown">
+                            <a class="dropdown-item" id="toggleNotifications" href="#" onclick="toggleNotifications(event)">
+                                Desativar notificações
+                            </a>
+                            <a class="dropdown-item" href="#" data-toggle="modal" data-target="#retransmitUrlsModal">
+                                Gerenciar URLs de Retransmissão
+                            </a>
                         </div>
-                    @else
-                        <button class="btn m-0 btn-info btn-sm" id="toggleNotifications"
-                                onclick="toggleNotifications()">
-                            <i class="fa fa-bell-o"></i>
-                        </button>
-                        <button class="btn m-0 btn-primary btn-sm" data-toggle="modal" data-target="#retransmitUrlsModal">
-                            Gerenciar URLs de Retransmissão
-                        </button>
-                        <button class="btn btn-outline-info btn-sm" id="accountButton" data-toggle="modal" data-target="#accountModal">
-                            Fazer Login
-                        </button>
-                    @endif
+                    </div>
                 </div>
             </div>
             <div class="dropdown-divider my-3"></div>
@@ -114,11 +123,11 @@
                         <form id="loginForm">
                             <div class="form-group">
                                 <label for="loginEmail">E-mail</label>
-                                <input type="email" class="form-control" id="loginEmail" placeholder="Digite seu e-mail" required>
+                                <input autocomplete="new-email" type="email" class="form-control" id="loginEmail" placeholder="Digite seu e-mail" required>
                             </div>
                             <div class="form-group">
                                 <label for="loginPassword">Senha</label>
-                                <input type="password" class="form-control" id="loginPassword" placeholder="Digite sua senha" required>
+                                <input autocomplete="new-password" type="password" class="form-control" id="loginPassword" placeholder="Digite sua senha" required>
                             </div>
                             <button type="button" class="btn btn-primary" id="loginSubmit" disabled onclick="loginAccount()">Entrar</button>
                         </form>
@@ -132,15 +141,15 @@
                             </div>
                             <div class="form-group">
                                 <label for="registerEmail">Email</label>
-                                <input type="email" class="form-control" id="registerEmail" name="email" required>
+                                <input autocomplete="new-email" type="email" class="form-control" id="registerEmail" name="email" required>
                             </div>
                             <div class="form-group">
                                 <label for="registerPassword">Senha</label>
-                                <input type="password" class="form-control" id="registerPassword" name="password" required>
+                                <input autocomplete="new-password" type="password" class="form-control" id="registerPassword" name="password" required>
                             </div>
                             <div class="form-group">
                                 <label for="registerPasswordConfirm">Confirmar Senha</label>
-                                <input type="password" class="form-control" id="registerPasswordConfirm" name="password_confirmation" required>
+                                <input autocomplete="new-password" type="password" class="form-control" id="registerPasswordConfirm" name="password_confirmation" required>
                             </div>
                             <button type="submit" class="btn btn-primary" id="registerSubmit" disabled>Registrar</button>
                         </form>
@@ -300,17 +309,24 @@
     </div>
 
     <script>
-        // Temporizador para esconder as notificações automaticamente
-        setTimeout(() => {
-            const notifications = document.getElementById('notifications');
-            if (notifications) {
-                notifications.style.transition = 'opacity 0.5s';
-                notifications.style.opacity = '0';
-                setTimeout(() => notifications.remove(), 500); // Remove o elemento após a animação de transição
-            }
-        }, 5000); // Exibe a notificação por 5 segundos
+        document.addEventListener("DOMContentLoaded", function () {
+            const notifications = document.getElementById("notifications");
 
-        // Evento para fechar a notificação manualmente ao clicar no botão "fechar"
+            if (!notifications) return;
+
+            let timeout = setTimeout(() => {
+                fadeOut(notifications);
+            }, 5000);
+
+            // Interrompe o desaparecimento se o mouse estiver sobre a notificação
+            notifications.addEventListener("mouseenter", () => clearTimeout(timeout));
+
+            // Retoma o desaparecimento quando o mouse sai
+            notifications.addEventListener("mouseleave", () => {
+                timeout = setTimeout(() => fadeOut(notifications), 3000);
+            });
+        });
+
         document.querySelectorAll('.alert-dismissible .close').forEach(button => {
             button.addEventListener('click', function () {
                 const alert = this.closest('.alert');
@@ -319,6 +335,12 @@
                 setTimeout(() => alert.remove(), 500); // Remove o elemento após a transição
             });
         });
+
+        function fadeOut(element) {
+            element.style.transition = "opacity 0.5s";
+            element.style.opacity = "0";
+            setTimeout(() => element.remove(), 500);
+        }
     </script>
 @endif
 </body>
