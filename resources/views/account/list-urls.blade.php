@@ -158,6 +158,20 @@
         }
     }
 
+    async function logoutAccount() {
+        try {
+            const response = await fetch(route('logout'), { method: 'POST' });
+            if (response.ok) {
+                location.reload(); // Recarrega a página para exibir o botão de login novamente
+            } else {
+                alert('Erro ao fazer logout.');
+            }
+        } catch (error) {
+            console.error('Erro ao fazer logout:', error);
+        }
+    }
+
+
 </script>
 
 </body>
