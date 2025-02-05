@@ -225,44 +225,69 @@
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="featureModalLabel">Bem-vindo ao Sistema de Monitoramento de Webhooks</h5>
+                <h5 class="modal-title" id="featureModalLabel">🚀 Bem-vindo ao Monitor de Webhooks!</h5>
             </div>
             <div class="modal-body">
-                <p>Este sistema foi projetado para otimizar o gerenciamento e a visualização de webhooks em tempo real.
-                    Abaixo, você encontrará uma visão geral das funcionalidades principais:</p>
+                <p>Este sistema foi desenvolvido para facilitar a captura, gerenciamento e retransmissão de webhooks em tempo real.
+                    Abaixo, você encontrará uma visão geral das principais funcionalidades:</p>
+
                 <ul class="list-group mb-3">
                     <li class="list-group-item">
-                        <strong>Notificações em Tempo Real</strong><br>
-                        Receba alertas instantâneos de webhooks recebidos. <span class="text-primary">Clique em "Ok! Habilite as notificações"</span>
-                        abaixo para permitir notificações no navegador e receber alertas sempre que um novo webhook
-                        chegar.
+                        <strong>📡 Captura e Exibição de Webhooks</strong><br>
+                        <ul>
+                            <li>Receba e visualize webhooks recebidos em tempo real.</li>
+                            <li>Exiba detalhes completos de cada requisição, incluindo <strong>Método HTTP</strong>, <strong>Headers</strong>, <strong>Query Params</strong> e <strong>Corpo da Requisição</strong>.</li>
+                            <li>As requisições recentes aparecem no topo para facilitar a análise.</li>
+                        </ul>
                     </li>
+
                     <li class="list-group-item">
-                        <strong>Retransmissão Automática de Webhooks</strong><br>
-                        Configure URLs específicas para retransmitir automaticamente os webhooks recebidos. Com esta
-                        função, você garante que todos os webhooks sejam encaminhados rapidamente para os sistemas
-                        designados.
+                        <strong>🔔 Notificações em Tempo Real</strong><br>
+                        <ul>
+                            <li>Ative notificações para ser alertado sempre que um novo webhook chegar.</li>
+                            <li>Cada URL pode ter notificações ativadas ou desativadas individualmente.</li>
+                            <li>Clique em <span class="text-primary">"Ok! Habilite as notificações"</span> abaixo para permitir notificações no navegador.</li>
+                        </ul>
                     </li>
+
                     <li class="list-group-item">
-                        <strong>Visualização Detalhada dos Webhooks</strong><br>
-                        Examine cada webhook individualmente, com visualização completa de detalhes como cabeçalhos,
-                        parâmetros de consulta e payloads.
+                        <strong>🔄 Retransmissão Automática de Webhooks</strong><br>
+                        <ul>
+                            <li>Configure <strong>URLs de retransmissão</strong> para encaminhar automaticamente os webhooks recebidos.</li>
+                            <li>Caso a URL de destino esteja offline, o sistema permite reenviar manualmente.</li>
+                        </ul>
                     </li>
+
                     <li class="list-group-item">
-                        <strong>Forçar Retransmissão</strong><br>
-                        A funcionalidade de retransmissão manual permite que você encaminhe webhooks específicos para URLs configuradas a qualquer momento. Com isso, você tem controle adicional sobre o envio, garantindo que todos os webhooks sejam processados conforme necessário.
+                        <strong>📁 Gerenciamento de Múltiplas URLs</strong><br>
+                        <ul>
+                            <li>Cada usuário pode criar e gerenciar <strong>múltiplas URLs</strong> para monitoramento de webhooks.</li>
+                            <li>Personalize cada URL com um <strong>slug</strong> para facilitar a identificação.</li>
+                            <li>Acesse todas as suas URLs na página <strong>Minhas URLs de Webhooks</strong>.</li>
+                        </ul>
+                    </li>
+
+                    <li class="list-group-item">
+                        <strong>⚙️ Configuração Personalizada</strong><br>
+                        <ul>
+                            <li>Utilize o menu de configurações para gerenciar retransmissões, notificações e detalhes da URL.</li>
+                            <li>Modifique o <strong>slug</strong> da URL para facilitar seu uso.</li>
+                        </ul>
                     </li>
                 </ul>
-                <p class="text-muted"><small>Habilite as notificações para receber atualizações em tempo real sempre que
-                        um webhook chegar.</small></p>
+
+                <p class="text-muted">
+                    <small>Habilite as notificações para acompanhar os eventos em tempo real e aproveite ao máximo o sistema!</small>
+                </p>
             </div>
             <div class="modal-footer">
-                <button id="understoodButton" class="btn btn-secondary">Entendido</button>
-                <button id="enableNotifications" class="btn btn-primary">Ok! Habilite as notificações</button>
+                <button id="understoodButton" class="btn btn-secondary">✔ Entendido</button>
+                <button id="enableNotifications" class="btn btn-primary">🔔 Ok! Habilite as notificações</button>
             </div>
         </div>
     </div>
 </div>
+
 @routes
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>

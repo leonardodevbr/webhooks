@@ -1,21 +1,23 @@
+html {
+    height: 100%;
+}
 
 body {
     font-family: Arial, sans-serif;
-    height: 100vh;
     margin: 0;
+    height: 100%;
 }
 
 #sidebar {
     width: 25%;
     overflow-y: auto;
-    min-height: 100vh; /* Garante que ocupe a altura total da janela */
     background: #e9ecef; /* Cinza claro */
     padding: 1rem; /* Ajusta o espaçamento interno */
     border-right: 1px solid #dee2e6;
+    height: calc(100vh - 56px);
 }
 
 #content {
-    min-height: 100vh; /* Igual à sidebar */
     flex-grow: 1;
     padding: 20px;
 }
@@ -223,6 +225,6 @@ table.compact-table td {
     max-height: 250px;
 }
 
-.urls-table td{
+.urls-table td {
     vertical-align: middle;
 }
