@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Interfaces\IPaymentService;
+use App\Services\EfiPayService;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
@@ -13,7 +15,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->bind(IPaymentService::class, function () {
+            $provider = config('services.payment.provider');
+
+            return match ($provider) {
+                default => new EfiPayService()
+            };
+        });
     }
 
     /**

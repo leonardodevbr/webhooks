@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Account;
+use App\Models\Plan;
 use App\Models\Url;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
@@ -214,5 +216,66 @@ class AccountController extends Controller
 
         return $slug;
     }
+
+    public function profile()
+    {
+        if (Auth::check()) {
+            $account = Auth::user();
+            $plans = Plan::where('active', true)->get();
+            $savedCards = [];
+            return view('account.profile', compact('account', 'plans', 'savedCards'));
+        }
+
+        return view('account.login');
+    }
+
+    public function updateProfile(Request $request)
+    {
+        $account = Auth::user();
+        // Validação dos campos
+        $validator = Validator::make($request->all(), [
+            'name' => 'required|string|max:255',
+            'email' => "required|email|unique:accounts,email,{$account->id}",
+            'cpf' => 'required|string|size:11|unique:accounts,cpf,' . $account->id,
+            'phone' => 'required|string|max:20',
+            'birth_date' => 'required|date',
+            'street' => 'required|string|max:255',
+            'number' => 'required|string|max:10',
+            'neighborhood' => 'required|string|max:255',
+            'zipcode' => 'required|string|size:8',
+            'city' => 'required|string|max:255',
+            'state' => 'required|string|size:2',
+        ]);
+
+        if ($validator->fails()) {
+            return redirect()->back()
+                ->withErrors($validator)
+                ->withInput();
+        }
+
+        try {
+            $validated = $validator->validated();
+
+            if ($request->has('birth_date')) {
+                try {
+                    $validated['birth_date'] = Carbon::createFromFormat('d/m/Y', $request->input('birth_date'))->format('Y-m-d');
+                } catch (\Exception $e) {
+                    return redirect()->back()->withErrors(['birth_date' => 'Formato de data inválido. Use DD/MM/YYYY.'])->withInput();
+                }
+            }
+
+            // Atualiza os dados do usuário autenticado
+            $account->update($validated);
+
+            return redirect()->back()
+                ->with('success', 'Perfil atualizado com sucesso.');
+        } catch (\Exception $e) {
+            Log::error('Erro ao atualizar perfil: ' . $e->getMessage());
+
+            return redirect()->back()
+                ->with('error', 'Erro ao atualizar perfil. Tente novamente.');
+        }
+    }
+
 
 }
