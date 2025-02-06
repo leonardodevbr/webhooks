@@ -3,8 +3,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const pusherCluster = window.env.PUSHER_CLUSTER;
     const pusherChannel = window.env.PUSHER_CHANNEL;
 
-    const showInitialNotification = localStorage.getItem("showInitialNotification") === "true";
-    const hasSeenModal = localStorage.getItem("hasSeenFeatureModal") === "true";
+    let hasSeenModal = localStorage.getItem("hasSeenFeatureModal") === "true";
     window.retransmitUrls = await loadRetransmissionUrls();
     // Pusher.logToConsole = true;
 
@@ -26,13 +25,22 @@ document.addEventListener("DOMContentLoaded", async () => {
         document.getElementById("enableNotifications").addEventListener("click", async () => {
             const permission = await Notification.requestPermission();
             if (permission === "granted") {
-                localStorage.setItem("notificationsEnabled", "true");
-                localStorage.setItem("showInitialNotification", "true");
+                try {
+                    new Notification("Notificações Ativadas", {
+                        body: "Você receberá atualizações em tempo real para cada novo webhook.",
+                        icon: "/apple-touch-icon.png",
+                        requireInteraction: true
+                    });
+                    // Remover o item após exibir a notificação
+                    localStorage.removeItem("showInitialNotification");
+                } catch (error) {
+                    console.error("Erro ao exibir notificação:", error);
+                }
+
                 updateNotificationButton(true);
 
                 // Marca o modal como visto e recarrega a página para exibir a notificação inicial
                 markModalAsSeen();
-                location.reload();
             } else {
                 alert("Permissão para notificações foi negada.");
             }
@@ -123,22 +131,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     let notificationsEnabled = await getNotificationStatus();
-
-    // Exibe a notificação inicial ao recarregar a página e autorizar
-    if (showInitialNotification && notificationsEnabled && Notification.permission === "granted") {
-        try {
-            new Notification("Notificações Ativadas", {
-                body: "Você receberá atualizações em tempo real para cada novo webhook.",
-                icon: "/apple-touch-icon.png",
-                requireInteraction: true
-            });
-            // Remover o item após exibir a notificação
-            localStorage.removeItem("showInitialNotification");
-        } catch (error) {
-            console.error("Erro ao exibir notificação:", error);
-        }
-    }
-
     updateNotificationButton(notificationsEnabled);
     $('[data-toggle="tooltip"]').tooltip();
 
