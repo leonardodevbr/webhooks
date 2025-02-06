@@ -28,8 +28,11 @@
                     <i class="fa fa-user"></i> {{-- Ícone de usuário --}}
                 </button>
                 <div class="dropdown-menu dropdown-menu-right" aria-labelledby="accountDropdown">
-                    <a class="dropdown-item" href="#">Perfil</a>
-                    <a class="dropdown-item" href="{{route('account.list-urls', auth()->user()->slug)}}">Minhas URLs</a>
+                    <a class="dropdown-item" href="{{route('account.profile')}}">Perfil</a>
+                    <a class="dropdown-item active" href="{{ route('account.list-urls', ['account_slug' => auth()->user()->slug]) }}">Minhas URLs</a>
+                    @if(auth()->user()->is_admin)
+                        <a class="dropdown-item" href="{{ route('plans.index') }}">Planos</a>
+                    @endif
                     <div class="dropdown-divider"></div>
                     <a class="dropdown-item text-danger" href="#" onclick="logoutAccount()">Sair</a>
                 </div>

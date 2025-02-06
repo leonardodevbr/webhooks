@@ -4,6 +4,9 @@ use App\Http\Controllers\AccountController;
 use App\Http\Controllers\WebhookController;
 use App\Http\Controllers\WebhookUrlController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\EfiPayWebhookController;
+use App\Http\Controllers\PlanController;
+use App\Http\Controllers\SubscriptionController;
 
 // Home e Autenticação
 Route::get('/', [WebhookController::class, 'createUrl'])->name('webhook.create');
@@ -54,10 +57,32 @@ Route::prefix('account')->group(function () {
     Route::post('/logout', [AccountController::class, 'logout'])
         ->middleware('auth')
         ->name('logout');
+
+    Route::get('/profile', [AccountController::class, 'profile'])
+        ->middleware('auth')
+        ->name('account.profile');
+
+    Route::put('/profile', [AccountController::class, 'updateProfile'])
+        ->middleware('auth')
+        ->name('account.profile.update');
+
+    Route::post('/subscribe', [SubscriptionController::class, 'subscribe'])
+        ->middleware('auth')
+        ->name('subscription.subscribe');
+
+    Route::post('/cancel-subscription', [SubscriptionController::class, 'cancel'])
+        ->middleware('auth')
+        ->name('subscription.cancel');
 });
 
-//// URLs e Webhooks vinculados a contas
-Route::prefix('{account_slug}')->middleware('auth')->group(function () {
+Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
+    Route::resource('plans', PlanController::class);
+    Route::get('plans/{plan}/sync', [PlanController::class, 'sync'])->name('plans.sync');
+});
+
+Route::post('/efipay/webhook', [EfiPayWebhookController::class, 'handle']);
+
+Route::prefix('#/{account_slug}')->middleware('auth')->group(function () {
     Route::get('/urls', [WebhookController::class, 'listUrls'])->name('account.list-urls');
     Route::patch('/urls/{id}/update-slug', [WebhookController::class, 'updateSlug'])->name('account.url.update-slug');
     Route::post('/create-url', [WebhookController::class, 'createNewUrl'])->name('account.webhook.create');

@@ -15,9 +15,28 @@ return new class extends Migration
             $table->id();
             $table->uuid('hash')->unique();
             $table->string('name');
-            $table->string('slug')->unique(); // Slug usado na URL
+            $table->string('slug')->unique();
             $table->string('email')->unique();
-            $table->string('password'); // Senha encriptada
+            $table->string('password');
+            $table->boolean('is_admin')->default(false);
+
+            // Assinatura vinculada
+            $table->unsignedBigInteger('subscription_id')->nullable();
+            $table->foreign('subscription_id')->references('id')->on('subscriptions')->onDelete('set null');
+
+            // Campos adicionais para assinatura
+            $table->string('cpf')->nullable()->unique();
+            $table->string('phone')->nullable();
+            $table->date('birth_date')->nullable();
+
+            // Endereço do usuário
+            $table->string('street')->nullable();
+            $table->string('number')->nullable();
+            $table->string('neighborhood')->nullable();
+            $table->string('zipcode')->nullable();
+            $table->string('city')->nullable();
+            $table->string('state')->nullable();
+
             $table->timestamps();
         });
     }
