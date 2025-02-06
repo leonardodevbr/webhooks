@@ -25,17 +25,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         document.getElementById("enableNotifications").addEventListener("click", async () => {
             const permission = await Notification.requestPermission();
             if (permission === "granted") {
-                try {
-                    new Notification("Notificações Ativadas", {
-                        body: "Você receberá atualizações em tempo real para cada novo webhook.",
-                        icon: "/apple-touch-icon.png",
-                        requireInteraction: true
-                    });
-                    // Remover o item após exibir a notificação
-                    localStorage.removeItem("showInitialNotification");
-                } catch (error) {
-                    console.error("Erro ao exibir notificação:", error);
-                }
+                await showInitialNotification();
 
                 updateNotificationButton(true);
 
@@ -246,8 +236,17 @@ async function addRetransmissionUrl() {
         saveButton.innerText = "Salvar";
     }
 }
-
-
+async function showInitialNotification(){
+    try {
+        new Notification("Notificações Ativadas", {
+            body: "Você receberá atualizações em tempo real para cada novo webhook.",
+            icon: "/apple-touch-icon.png",
+            requireInteraction: true
+        });
+    } catch (error) {
+        console.error("Erro ao exibir notificação:", error);
+    }
+}
 async function loadRetransmissionUrls() {
     if(urlId === "" || urlId === undefined){
         return;
@@ -698,8 +697,8 @@ async function toggleNotifications(event) {
             if (data.notifications_enabled) {
                 Notification.requestPermission().then(permission => {
                     if (permission === "granted") {
+                        showInitialNotification();
                         updateNotificationButton(true);
-                        alert("Notificações ativadas!");
                     } else {
                         updateNotificationButton(false);
                         alert("Permissão para notificações negada.");
