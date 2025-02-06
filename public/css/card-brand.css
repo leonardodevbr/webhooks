@@ -1,0 +1,42 @@
+.brand-append {
+    padding: 0 5px !important;
+}
+
+.card-brand {
+    width: 38px;
+    height: 22px;
+    display: inline-block;
+    background-image: url('/images/ui-card__logo.svg'); /* Atualizar o caminho */
+    background-repeat: no-repeat;
+    background-size: 130px auto;
+}
+
+/* Posições das bandeiras */
+.card-brand.visa {
+    background-position: 0 -632px;
+    background-size: 190px auto;
+    width: 53px;
+    height: 30px;
+}
+
+.card-brand.mastercard {
+    background-position: 0 -324px;
+}
+
+.card-brand.amex {
+    background-position: 0 -45px;
+    background-size: 188px auto;
+    width: 45px;
+    height: 30px
+}
+
+.card-brand.elo {
+    background-position: 0 -243px;
+}
+
+.card-brand.hipercard {
+    background-position: 0 -352px;
+    background-size: 170px auto;
+    width: 70px;
+    height: 30px;
+}

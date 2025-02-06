@@ -17,6 +17,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $id
  * @property string $hash
  * @property int $url_id
+ * @property int|null $subscription_id
+ * @property Carbon|null $blocked_at
  * @property Carbon|null $timestamp
  * @property string $method
  * @property array|null $headers
@@ -30,6 +32,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * 
+ * @property Subscription|null $subscription
  * @property Url $url
  *
  * @package App\Models
@@ -41,6 +44,8 @@ class Webhook extends Model
 
 	protected $casts = [
 		'url_id' => 'int',
+		'subscription_id' => 'int',
+		'blocked_at' => 'datetime',
 		'timestamp' => 'datetime',
 		'headers' => 'array',
 		'query_params' => 'array',
@@ -53,6 +58,8 @@ class Webhook extends Model
 	protected $fillable = [
 		'hash',
 		'url_id',
+		'subscription_id',
+		'blocked_at',
 		'timestamp',
 		'method',
 		'headers',
@@ -64,6 +71,11 @@ class Webhook extends Model
 		'retransmitted',
 		'viewed'
 	];
+
+	public function subscription(): BelongsTo
+	{
+		return $this->belongsTo(Subscription::class);
+	}
 
 	public function url(): BelongsTo
 	{

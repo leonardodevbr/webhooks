@@ -14,50 +14,52 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * Class Url
+ * Class Subscription
  * 
  * @property int $id
- * @property string $hash
- * @property string $ip_address
- * @property int|null $account_id
- * @property string|null $slug
- * @property bool $notifications_enabled
- * @property int $request_count
- * @property Carbon|null $blocked_at
+ * @property int $plan_id
+ * @property string|null $external_subscription_id
+ * @property Carbon $started_at
+ * @property Carbon|null $expires_at
+ * @property bool $is_active
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * 
- * @property Account|null $account
+ * @property Plan $plan
+ * @property Collection|Account[] $accounts
  * @property Collection|WebhookRetransmissionUrl[] $webhook_retransmission_urls
  * @property Collection|Webhook[] $webhooks
  *
  * @package App\Models
  */
-class Url extends Model
+class Subscription extends Model
 {
 	use HasFactory;
-	protected $table = 'urls';
+	protected $table = 'subscriptions';
 
 	protected $casts = [
-		'account_id' => 'int',
-		'notifications_enabled' => 'bool',
-		'request_count' => 'int',
-		'blocked_at' => 'datetime'
+		'plan_id' => 'int',
+		'started_at' => 'datetime',
+		'expires_at' => 'datetime',
+		'is_active' => 'bool'
 	];
 
 	protected $fillable = [
-		'hash',
-		'ip_address',
-		'account_id',
-		'slug',
-		'notifications_enabled',
-		'request_count',
-		'blocked_at'
+		'plan_id',
+		'external_subscription_id',
+		'started_at',
+		'expires_at',
+		'is_active'
 	];
 
-	public function account(): BelongsTo
+	public function plan(): BelongsTo
 	{
-		return $this->belongsTo(Account::class);
+		return $this->belongsTo(Plan::class);
+	}
+
+	public function accounts(): HasMany
+	{
+		return $this->hasMany(Account::class);
 	}
 
 	public function webhook_retransmission_urls(): HasMany

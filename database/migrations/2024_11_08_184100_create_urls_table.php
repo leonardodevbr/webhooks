@@ -12,9 +12,15 @@ class CreateUrlsTable extends Migration
             $table->id();
             $table->uuid('hash')->unique();
             $table->ipAddress();
-            $table->foreignId('account_id')->nullable()->constrained('accounts')->onDelete('cascade'); // Relacionado a uma conta
-            $table->string('slug')->nullable()->unique();
+            $table->foreignId('account_id')->nullable()->constrained('accounts')->onDelete('cascade');
+
+            $table->string('slug')->nullable();
             $table->boolean('notifications_enabled')->default(true);
+
+            // Controle de limites
+            $table->unsignedInteger('request_count')->default(0);
+            $table->timestamp('blocked_at')->nullable();
+
             $table->timestamps();
         });
     }

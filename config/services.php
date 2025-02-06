@@ -42,4 +42,14 @@ return [
         'cluster' => env('PUSHER_CLUSTER'),
         'channel' => env('PUSHER_CHANNEL'),
     ],
+
+    'efipay' => [
+        'key' => env('EFI_PAY_KEY'),
+        'secret' => env('EFI_PAY_SECRET'),
+        'base_url' => env('EFI_PAY_BASE_URL')
+    ],
+
+    'payment' => [
+        'provider' => env('PAYMENT_PROVIDER', 'efipay')
+    ],
 ];
