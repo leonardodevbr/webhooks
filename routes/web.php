@@ -1,12 +1,12 @@
 <?php
 
 use App\Http\Controllers\AccountController;
-use App\Http\Controllers\WebhookController;
-use App\Http\Controllers\WebhookUrlController;
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\EfiPayWebhookController;
 use App\Http\Controllers\PlanController;
 use App\Http\Controllers\SubscriptionController;
+use App\Http\Controllers\WebhookController;
+use App\Http\Controllers\WebhookUrlController;
+use Illuminate\Support\Facades\Route;
 
 // Home e Autenticação
 Route::get('/', [WebhookController::class, 'createUrl'])->name('webhook.create');
@@ -23,10 +23,12 @@ Route::patch('/webhook/{id}/retransmitted', [WebhookController::class, 'markRetr
     'webhook.mark-retransmitted'
 );
 Route::patch('/webhook/{id}/viewed', [WebhookController::class, 'markAsViewed'])->name('webhook.mark-viewed');
-Route::get('/webhook/{id}/notification-status', [WebhookController::class, 'getNotificationStatus'])->name('webhook.get-notification-status');
-Route::patch('/webhook/{id}/toggle-notifications', [WebhookController::class, 'toggleNotifications'])->name('webhook.toggle-notifications');
-Route::any('/{url_hash}', [WebhookController::class, 'publicListener'])->name('webhook.listener');
-
+Route::get('/webhook/{id}/notification-status', [WebhookController::class, 'getNotificationStatus'])->name(
+    'webhook.get-notification-status'
+);
+Route::patch('/webhook/{id}/toggle-notifications', [WebhookController::class, 'toggleNotifications'])->name(
+    'webhook.toggle-notifications'
+);
 Route::prefix('webhook-retransmission')->group(function () {
     // Rota para listar todas as URLs de retransmissão
     Route::get('urls', [WebhookUrlController::class, 'listRetransmissionUrls'])
@@ -46,46 +48,30 @@ Route::prefix('webhook-retransmission')->group(function () {
 });
 
 
-// Account
 Route::prefix('account')->group(function () {
-    Route::get('/register', [AccountController::class, 'showRegisterForm'])->name('form.register'); // Público
-    Route::post('/register', [AccountController::class, 'register'])->name('register'); // Público
-    Route::get('/login', [AccountController::class, 'showLoginForm'])->name('form.login'); // Público
-    Route::post('/login', [AccountController::class, 'login'])->name('login'); // Público
-
-    // Apenas usuários autenticados podem acessar a rota de logout
-    Route::post('/logout', [AccountController::class, 'logout'])
-        ->middleware('auth')
-        ->name('logout');
-
-    Route::get('/profile', [AccountController::class, 'profile'])
-        ->middleware('auth')
-        ->name('account.profile');
-
-    Route::put('/profile', [AccountController::class, 'updateProfile'])
-        ->middleware('auth')
-        ->name('account.profile.update');
-
-    Route::post('/subscribe', [SubscriptionController::class, 'subscribe'])
-        ->middleware('auth')
-        ->name('subscription.subscribe');
-
-    Route::post('/cancel-subscription', [SubscriptionController::class, 'cancel'])
-        ->middleware('auth')
-        ->name('subscription.cancel');
+    Route::get('/register', [AccountController::class, 'showRegisterForm'])->name('form.register');
+    Route::post('/register', [AccountController::class, 'register'])->name('register');
+    Route::get('/login', [AccountController::class, 'showLoginForm'])->name('form.login');
+    Route::post('/login', [AccountController::class, 'login'])->name('login');
 });
+
+Route::prefix('account')->group(function () {
+    Route::post('/logout', [AccountController::class, 'logout'])->name('logout');
+    Route::get('/profile', [AccountController::class, 'profile'])->name('account.profile');
+    Route::put('/profile', [AccountController::class, 'updateProfile'])->name('account.profile.update');
+    Route::post('/subscribe', [SubscriptionController::class, 'subscribe'])->name('subscription.subscribe');
+    Route::post('/cancel-subscription', [SubscriptionController::class, 'cancel'])->name('subscription.cancel');
+    Route::get('/urls', [WebhookController::class, 'listUrls'])->name('account.list-urls');
+    Route::patch('/urls/{id}/update-slug', [WebhookController::class, 'updateSlug'])->name('account.url.update-slug');
+    Route::post('/create-url', [WebhookController::class, 'createNewUrl'])->name('account.webhook.create');
+    Route::get('/view/{url_hash}', [WebhookController::class, 'view'])->name('account.webhook.view');
+})->middleware('auth');
 
 Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
     Route::resource('plans', PlanController::class);
     Route::get('plans/{plan}/sync', [PlanController::class, 'sync'])->name('plans.sync');
 });
 
-Route::post('/efipay/webhook', [EfiPayWebhookController::class, 'handle']);
-
-Route::prefix('#/{account_slug}')->middleware('auth')->group(function () {
-    Route::get('/urls', [WebhookController::class, 'listUrls'])->name('account.list-urls');
-    Route::patch('/urls/{id}/update-slug', [WebhookController::class, 'updateSlug'])->name('account.url.update-slug');
-    Route::post('/create-url', [WebhookController::class, 'createNewUrl'])->name('account.webhook.create');
-    Route::get('/view/{url_hash}', [WebhookController::class, 'authView'])->name('account.webhook.view');
-    Route::any('/{url_hash}', [WebhookController::class, 'authenticatedListener'])->name('account.webhook.listener');
-});
+Route::post('/efipay/_listener', [EfiPayWebhookController::class, 'handle']);
+Route::any('/{url_slug}/{url_hash}', [WebhookController::class, 'customListener'])->name('webhook.custom-listener');
+Route::any('/{url_hash}', [WebhookController::class, 'listener'])->name('webhook.listener');

@@ -67,13 +67,19 @@
                         <td>{{ $url['id']}}</td>
                         <td>
                             <div class="small">
-                                <a href="{{ route('account.webhook.view', ['account_slug' => auth()->user()->slug, 'url_hash' => $url['hash']]) }}" target="_blank">
-                                    {{ route('webhook.listener', ['url_hash' => $url['hash']]) }}
-                                </a>
+                                @if(!empty($url['slug']))
+                                    <a href="javascript:;" class="text-decoration-none text-info" id="copyUrl" data-toggle="tooltip" title="Clique para copiar">
+                                        {{ route('webhook.custom-listener', ['url_slug' => $url['slug'], 'url_hash' => $url['hash']]) }}
+                                    </a>
+                                @else
+                                    <a href="javascript:;" class="text-decoration-none text-info" id="copyUrl" data-toggle="tooltip" title="Clique para copiar">
+                                        {{ route('webhook.listener', ['url_hash' => $url['hash']]) }}
+                                    </a>
+                                @endif
                             </div>
                         </td>
-                        <td>
-                            <div class="input-group">
+                        <td style="width: 160px">
+                            <div class="input-group input-group-sm">
                                 <input type="text" class="form-control" id="slug-{{ $url['id'] }}" value="{{ $url['slug'] ?? '' }}" placeholder="Adicionar Slug">
                                 <div class="input-group-append">
                                     <button onclick="updateSlug('{{auth()->user()->slug}}', {{ $url['id'] }})" class="btn btn-info"><i class="fa fa-check"></i></button>
@@ -88,7 +94,7 @@
                         </td>
                         <td>{{ \Carbon\Carbon::parse($url['created_at'])->format('d/m/Y H:i:s') }}</td>
                         <td>
-                            <a href="{{ route('account.webhook.view', ['account_slug' => auth()->user()->slug, 'url_hash' => $url['hash']]) }}" class="btn btn-sm btn-info">
+                            <a href="{{ route('account.webhook.view', ['url_hash' => $url['hash']]) }}" class="btn btn-sm btn-info">
                                 <i class="fa fa-eye"></i> Visualizar
                             </a>
                         </td>
@@ -174,6 +180,105 @@
         }
     }
 
+    function copyToClipboard(event) {
+        const urlEle = document.getElementById("copyUrl");
+        const urlText = urlEle.innerText;
+
+        navigator.clipboard.writeText(urlText)
+            .then(() => {
+                const originalTitle = urlEle.getAttribute('data-original-title') || 'Clique para copiar';
+
+                $(urlEle)
+                    .tooltip('hide')
+                    .attr('data-original-title', 'Copiado com sucesso')
+                    .tooltip('show');
+
+                // Encontra o tooltip gerado pelo Bootstrap e aplica a classe de sucesso
+                const tooltip = document.querySelector('.tooltip.show');
+                if (tooltip) {
+                    tooltip.classList.add('tooltip-success');
+                }
+
+                setTimeout(() => {
+                    $(urlEle)
+                        .tooltip('hide')
+                        .attr('data-original-title', originalTitle);
+
+                    // Remove a classe após o tempo determinado
+                    const tooltip = document.querySelector('.tooltip.show');
+                    if (tooltip) {
+                        tooltip.classList.remove('tooltip-success');
+                    }
+                }, 1500);
+
+                // Se CTRL ou CMD estiver pressionado, abre a URL em uma nova aba
+                if (event.ctrlKey || event.metaKey) {
+                    window.open(urlText, '_blank');
+                }
+            })
+            .catch(err => {
+                console.error("Erro ao copiar URL: ", err);
+            });
+    }
+
+    // Função para verificar teclas pressionadas e atualizar o tooltip SOMENTE SE ELE ESTIVER VISÍVEL
+    function updateTooltip(event) {
+        const urlEle = document.getElementById("copyUrl");
+        const tooltip = document.querySelector('.tooltip.show');
+
+        // Verifica se o tooltip está ativo antes de modificar
+        if (tooltip) {
+            if (event.ctrlKey || event.metaKey) {
+                $(urlEle)
+                    .attr('data-original-title', 'Clique para abrir o link')
+                    .tooltip('show');
+
+                tooltip.classList.add('tooltip-warning');
+            } else {
+                $(urlEle)
+                    .attr('data-original-title', 'Clique para copiar')
+                    .tooltip('show');
+
+                tooltip.classList.remove('tooltip-warning');
+            }
+        }
+    }
+
+    // Reseta o tooltip quando o mouse sai do elemento
+    function resetTooltip() {
+        const urlEle = document.getElementById("copyUrl");
+        $(urlEle).attr('data-original-title', 'Clique para copiar');
+
+        // Remove qualquer cor do tooltip
+        const tooltip = document.querySelector('.tooltip.show');
+        if (tooltip) {
+            tooltip.classList.remove('tooltip-warning', 'tooltip-success');
+        }
+    }
+
+    // Adiciona os eventos APENAS quando o mouse estiver sobre o elemento
+    document.addEventListener("DOMContentLoaded", function () {
+        $('[data-toggle="tooltip"]').tooltip();
+        const copyUrlElement = document.getElementById("copyUrl");
+
+        if (copyUrlElement) {
+            copyUrlElement.addEventListener("click", copyToClipboard);
+            copyUrlElement.addEventListener("mouseover", updateTooltip);
+            copyUrlElement.addEventListener("mouseout", resetTooltip);
+
+            // Adiciona eventos de teclado SOMENTE quando o mouse está sobre o elemento
+            copyUrlElement.addEventListener("mouseenter", () => {
+                document.addEventListener("keydown", updateTooltip);
+                document.addEventListener("keyup", updateTooltip);
+            });
+
+            // Remove eventos de teclado quando o mouse sai do elemento
+            copyUrlElement.addEventListener("mouseleave", () => {
+                document.removeEventListener("keydown", updateTooltip);
+                document.removeEventListener("keyup", updateTooltip);
+            });
+        }
+    });
 
 </script>
 

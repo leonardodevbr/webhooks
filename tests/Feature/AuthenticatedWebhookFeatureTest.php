@@ -94,10 +94,7 @@ class AuthenticatedWebhookFeatureTest extends TestCase
     #[Test]
     public function it_denies_access_to_protected_urls_for_guests()
     {
-        $response = $this->postJson(route('account.webhook.create', [
-            'account_slug' => 'qualquer-conta',
-        ]));
-
+        $response = $this->getJson(route('plans.index'));
         $response->assertStatus(401);
     }
 
@@ -110,13 +107,12 @@ class AuthenticatedWebhookFeatureTest extends TestCase
         $url = Url::factory()->create(['account_id' => $account2->id]); // URL pertencente à outra conta
 
         $response = $this->actingAs($account1)->getJson(route('account.webhook.view', [
-            'account_slug' => $account2->slug,
             'url_hash' => $url->hash,
         ]));
 
         // Aceitar tanto redirecionamento (302) quanto um possível erro 403
         $response->assertStatus(302);
-        $response->assertRedirect(route('webhook.create-new-url')); // Verifica se redireciona para criação de uma nova URL
+        $response->assertRedirect(route('form.login')); // Verifica se redireciona para criação de uma nova URL
     }
 
 

@@ -55,7 +55,6 @@ class WebhookControllerTest extends TestCase
         Webhook::factory()->count(2)->create(['url_id' => $url->id]);
 
         $response = $this->get(route('account.webhook.view', [
-            'account_slug' => $account->slug,
             'url_hash' => $url->hash
         ]));
 
@@ -66,9 +65,34 @@ class WebhookControllerTest extends TestCase
     }
 
     #[Test]
+    public function it_handles_valid_webhook_listener_request()
+    {
+        $url = Url::factory()->create();
+
+        $response = $this->postJson(route('webhook.listener', ['url_hash' => $url->hash]));
+        $response->assertStatus(200);
+    }
+
+    #[Test]
+    public function it_handles_valid_webhook_custom_listener_request()
+    {
+        $url = Url::factory()->create(['slug' => 'custom-slug']);
+
+        $response = $this->postJson(route('webhook.custom-listener', ['url_slug' => 'custom-slug', 'url_hash' => $url->hash]));
+        $response->assertStatus(200);
+    }
+
+    #[Test]
     public function it_handles_invalid_webhook_listener_request()
     {
         $response = $this->postJson(route('webhook.listener', ['url_hash' => 'invalid']));
+        $response->assertStatus(404);
+    }
+
+    #[Test]
+    public function it_handles_invalid_webhook_custom_listener_request()
+    {
+        $response = $this->postJson(route('webhook.custom-listener', ['url_slug' => 'invalid', 'url_hash' => 'invalid']));
         $response->assertStatus(404);
     }
 

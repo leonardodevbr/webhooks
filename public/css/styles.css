@@ -228,3 +228,38 @@ table.compact-table td {
 .urls-table td {
     vertical-align: middle;
 }
+
+.top-0 {
+    top: 0;
+}
+
+.right-0 {
+    right: 0;
+}
+
+/* Tooltip padrão */
+.tooltip .tooltip-inner {
+    background-color: #343a40 !important; /* Preto padrão */
+    color: #fff !important;
+}
+.tooltip .arrow::before {
+    border-top-color: #343a40 !important; /* Cor da seta */
+}
+
+/* Tooltip verde para "Copiado com sucesso" */
+.tooltip.tooltip-success .tooltip-inner {
+    background-color: #28a745 !important; /* Verde */
+    color: #fff !important;
+}
+.tooltip.tooltip-success .arrow::before {
+    border-top-color: #28a745 !important;
+}
+
+/* Tooltip laranja para "Abrir em outra aba" */
+.tooltip.tooltip-warning .tooltip-inner {
+    background-color: #ff9800 !important; /* Laranja */
+    color: #fff !important;
+}
+.tooltip.tooltip-warning .arrow::before {
+    border-top-color: #ff9800 !important;
+}

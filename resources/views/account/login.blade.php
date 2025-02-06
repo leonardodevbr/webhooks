@@ -20,12 +20,12 @@
                         @csrf
                         <div class="form-group">
                             <label for="loginEmail">E-mail</label>
-                            <input type="email" class="form-control" id="loginEmail" name="email" placeholder="Digite seu e-mail" required>
+                            <input type="email" autocomplete="email" class="form-control" id="loginEmail" name="email" placeholder="Digite seu e-mail" required>
                             <div class="invalid-feedback">Por favor, insira um e-mail válido.</div>
                         </div>
                         <div class="form-group">
                             <label for="loginPassword">Senha</label>
-                            <input type="password" class="form-control" id="loginPassword" name="password" placeholder="Digite sua senha" required>
+                            <input type="password" autocomplete="current-password" class="form-control" id="loginPassword" name="password" placeholder="Digite sua senha" required>
                             <div class="invalid-feedback">Por favor, insira sua senha.</div>
                         </div>
                         <button type="submit" class="btn btn-primary w-100" id="loginSubmit" disabled>Entrar</button>

@@ -3,8 +3,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     const pusherCluster = window.env.PUSHER_CLUSTER;
     const pusherChannel = window.env.PUSHER_CHANNEL;
 
-    const showInitialNotification = localStorage.getItem("showInitialNotification") === "true";
-    const hasSeenModal = localStorage.getItem("hasSeenFeatureModal") === "true";
+    let hasSeenModal = localStorage.getItem("hasSeenFeatureModal") === "true";
     window.retransmitUrls = await loadRetransmissionUrls();
     // Pusher.logToConsole = true;
 
@@ -20,23 +19,29 @@ document.addEventListener("DOMContentLoaded", async () => {
         }
 
         // Botão "Entendido"
-        document.getElementById("understoodButton").addEventListener("click", markModalAsSeen);
+        const understoodButtonElement = document.getElementById("understoodButton");
+        const enableNotificationsElement = document.getElementById("enableNotifications");
+
+        if (understoodButtonElement) {
+            understoodButtonElement.addEventListener("click", markModalAsSeen);
+        }
 
         // Botão "Ok! Habilite as notificações"
-        document.getElementById("enableNotifications").addEventListener("click", async () => {
-            const permission = await Notification.requestPermission();
-            if (permission === "granted") {
-                localStorage.setItem("notificationsEnabled", "true");
-                localStorage.setItem("showInitialNotification", "true");
-                updateNotificationButton(true);
+        if (enableNotificationsElement) {
+            enableNotificationsElement.addEventListener("click", async () => {
+                const permission = await Notification.requestPermission();
+                if (permission === "granted") {
+                    await showInitialNotification();
 
-                // Marca o modal como visto e recarrega a página para exibir a notificação inicial
-                markModalAsSeen();
-                location.reload();
-            } else {
-                alert("Permissão para notificações foi negada.");
-            }
-        });
+                    updateNotificationButton(true);
+
+                    // Marca o modal como visto e recarrega a página para exibir a notificação inicial
+                    markModalAsSeen();
+                } else {
+                    alert("Permissão para notificações foi negada.");
+                }
+            });
+        }
     }
 
     // Configuração de Pusher para notificar sobre novos webhooks
@@ -123,22 +128,6 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
 
     let notificationsEnabled = await getNotificationStatus();
-
-    // Exibe a notificação inicial ao recarregar a página e autorizar
-    if (showInitialNotification && notificationsEnabled && Notification.permission === "granted") {
-        try {
-            new Notification("Notificações Ativadas", {
-                body: "Você receberá atualizações em tempo real para cada novo webhook.",
-                icon: "/apple-touch-icon.png",
-                requireInteraction: true
-            });
-            // Remover o item após exibir a notificação
-            localStorage.removeItem("showInitialNotification");
-        } catch (error) {
-            console.error("Erro ao exibir notificação:", error);
-        }
-    }
-
     updateNotificationButton(notificationsEnabled);
     $('[data-toggle="tooltip"]').tooltip();
 
@@ -153,6 +142,9 @@ document.addEventListener("DOMContentLoaded", async () => {
 });
 
 async function getNotificationStatus() {
+    if(urlId === "" || urlId === undefined){
+        return;
+    }
     try {
         const response = await fetch(route('webhook.get-notification-status', { id: urlId }));
         if (response.ok) {
@@ -254,8 +246,17 @@ async function addRetransmissionUrl() {
         saveButton.innerText = "Salvar";
     }
 }
-
-
+async function showInitialNotification(){
+    try {
+        new Notification("Notificações Ativadas", {
+            body: "Você receberá atualizações em tempo real para cada novo webhook.",
+            icon: "/apple-touch-icon.png",
+            requireInteraction: true
+        });
+    } catch (error) {
+        console.error("Erro ao exibir notificação:", error);
+    }
+}
 async function loadRetransmissionUrls() {
     if(urlId === "" || urlId === undefined){
         return;
@@ -368,33 +369,6 @@ async function createNewUrl() {
     } else {
         console.log("A criação de uma nova URL foi cancelada pelo usuário.");
     }
-}
-
-function copyToClipboard() {
-    const urlEle = document.getElementById("copyUrl");
-    const urlText = urlEle.innerText;
-
-    navigator.clipboard.writeText(urlText)
-        .then(() => {
-            // Salva o texto original do tooltip
-            const originalTitle = urlEle.getAttribute('data-original-title') || 'Copiar';
-
-            // Altera o texto do tooltip para "Copiado com sucesso"
-            $(urlEle)
-                .tooltip('hide')
-                .attr('data-original-title', 'Copiado com sucesso')
-                .tooltip('show');
-
-            // Restaura o texto original do tooltip após 1.5 segundos
-            setTimeout(() => {
-                $(urlEle)
-                    .tooltip('hide')
-                    .attr('data-original-title', originalTitle);
-            }, 1500); // Tempo de exibição do "Copiado com sucesso"
-        })
-        .catch(err => {
-            console.error("Erro ao copiar URL: ", err);
-        });
 }
 
 async function removeWebhook(id) {
@@ -706,8 +680,8 @@ async function toggleNotifications(event) {
             if (data.notifications_enabled) {
                 Notification.requestPermission().then(permission => {
                     if (permission === "granted") {
+                        showInitialNotification();
                         updateNotificationButton(true);
-                        alert("Notificações ativadas!");
                     } else {
                         updateNotificationButton(false);
                         alert("Permissão para notificações negada.");
@@ -870,3 +844,101 @@ async function logoutAccount() {
         console.error('Erro ao fazer logout:', error);
     }
 }
+function copyToClipboard(event) {
+    const urlEle = document.getElementById("copyUrl");
+    const urlText = urlEle.innerText;
+
+    navigator.clipboard.writeText(urlText)
+        .then(() => {
+            const originalTitle = urlEle.getAttribute('data-original-title') || 'Clique para copiar';
+
+            $(urlEle)
+                .tooltip('hide')
+                .attr('data-original-title', 'Copiado com sucesso')
+                .tooltip('show');
+
+            // Encontra o tooltip gerado pelo Bootstrap e aplica a classe de sucesso
+            const tooltip = document.querySelector('.tooltip.show');
+            if (tooltip) {
+                tooltip.classList.add('tooltip-success');
+            }
+
+            setTimeout(() => {
+                $(urlEle)
+                    .tooltip('hide')
+                    .attr('data-original-title', originalTitle);
+
+                // Remove a classe após o tempo determinado
+                const tooltip = document.querySelector('.tooltip.show');
+                if (tooltip) {
+                    tooltip.classList.remove('tooltip-success');
+                }
+            }, 1500);
+
+            // Se CTRL ou CMD estiver pressionado, abre a URL em uma nova aba
+            if (event.ctrlKey || event.metaKey) {
+                window.open(urlText, '_blank');
+            }
+        })
+        .catch(err => {
+            console.error("Erro ao copiar URL: ", err);
+        });
+}
+
+// Função para verificar teclas pressionadas e atualizar o tooltip SOMENTE SE ELE ESTIVER VISÍVEL
+function updateTooltip(event) {
+    const urlEle = document.getElementById("copyUrl");
+    const tooltip = document.querySelector('.tooltip.show');
+
+    // Verifica se o tooltip está ativo antes de modificar
+    if (tooltip) {
+        if (event.ctrlKey || event.metaKey) {
+            $(urlEle)
+                .attr('data-original-title', 'Clique para abrir o link')
+                .tooltip('show');
+
+            tooltip.classList.add('tooltip-warning');
+        } else {
+            $(urlEle)
+                .attr('data-original-title', 'Clique para copiar')
+                .tooltip('show');
+
+            tooltip.classList.remove('tooltip-warning');
+        }
+    }
+}
+
+// Reseta o tooltip quando o mouse sai do elemento
+function resetTooltip() {
+    const urlEle = document.getElementById("copyUrl");
+    $(urlEle).attr('data-original-title', 'Clique para copiar');
+
+    // Remove qualquer cor do tooltip
+    const tooltip = document.querySelector('.tooltip.show');
+    if (tooltip) {
+        tooltip.classList.remove('tooltip-warning', 'tooltip-success');
+    }
+}
+
+// Adiciona os eventos APENAS quando o mouse estiver sobre o elemento
+document.addEventListener("DOMContentLoaded", function () {
+    const copyUrlElement = document.getElementById("copyUrl");
+
+    if (copyUrlElement) {
+        copyUrlElement.addEventListener("click", copyToClipboard);
+        copyUrlElement.addEventListener("mouseover", updateTooltip);
+        copyUrlElement.addEventListener("mouseout", resetTooltip);
+
+        // Adiciona eventos de teclado SOMENTE quando o mouse está sobre o elemento
+        copyUrlElement.addEventListener("mouseenter", () => {
+            document.addEventListener("keydown", updateTooltip);
+            document.addEventListener("keyup", updateTooltip);
+        });
+
+        // Remove eventos de teclado quando o mouse sai do elemento
+        copyUrlElement.addEventListener("mouseleave", () => {
+            document.removeEventListener("keydown", updateTooltip);
+            document.removeEventListener("keyup", updateTooltip);
+        });
+    }
+});

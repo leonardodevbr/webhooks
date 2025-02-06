@@ -56,10 +56,15 @@
                 </div>
                 <div class="dropdown-divider my-2"></div>
                 <div class="text-info small">
-                    <a href="javascript:;" class="text-decoration-none text-info" id="copyUrl"
-                       onclick="copyToClipboard()" data-toggle="tooltip" title="Copiar">
-                        <b>{{ route('webhook.listener', [$url->hash]) }}</b>
-                    </a>
+                    @if(!empty($url['slug']))
+                        <a href="javascript:;" class="text-decoration-none text-info" id="copyUrl" data-toggle="tooltip" title="Clique para copiar">
+                            {{ route('webhook.custom-listener', ['url_slug' => $url['slug'], 'url_hash' => $url['hash']]) }}
+                        </a>
+                    @else
+                        <a href="javascript:;" class="text-decoration-none text-info" id="copyUrl" data-toggle="tooltip" title="Clique para copiar">
+                            {{ route('webhook.listener', ['url_hash' => $url['hash']]) }}
+                        </a>
+                    @endif
                 </div>
             </div>
             <div class="dropdown-divider my-2"></div>
