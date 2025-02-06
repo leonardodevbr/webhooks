@@ -98,20 +98,20 @@
 
                         <div class="form-group">
                             <label for="cpf">CPF</label>
-                            <input type="text" class="form-control" id="cpf" name="cpf"
+                            <input type="text" class="form-control" id="cpf" name="cpf" data-mask="###.###.###-##" maxlength="14"
                                    value="{{ old('cpf', auth()->user()->cpf ?? '') }}" required>
                         </div>
 
                         <div class="form-group">
                             <label for="birth_date">Data de Nascimento</label>
-                            <input type="text" class="form-control datepicker" id="birth_date" name="birth_date"
+                            <input type="text" class="form-control datepicker" id="birth_date" name="birth_date" data-mask="##/##/####" maxlength="10"
                                    value="{{ old('birth_date', auth()->user()->birth_date ? \Carbon\Carbon::parse(auth()->user()->birth_date)->format('d/m/Y') : '') }}"
                                    required autocomplete="off">
                         </div>
 
                         <div class="form-group">
                             <label for="phone">Telefone</label>
-                            <input type="text" class="form-control" id="phone" name="phone"
+                            <input type="text" class="form-control" id="phone" name="phone" data-mask="(##) #####-####" maxlength="15"
                                    value="{{ old('phone', auth()->user()->phone ?? '') }}" required>
                         </div>
                     </div>
@@ -138,7 +138,7 @@
 
                         <div class="form-group">
                             <label for="zipcode">CEP</label>
-                            <input type="text" class="form-control" id="zipcode" name="zipcode"
+                            <input type="text" class="form-control" id="zipcode" name="zipcode" data-mask="#####-###" maxlength="9"
                                    value="{{ old('zipcode', auth()->user()->zipcode ?? '') }}" required>
                         </div>
 
@@ -280,12 +280,11 @@
                                 <select class="form-control" id="saved_cards">
                                     <option value="">Novo Cartão</option>
                                     @foreach($savedCards as $card)
-                                        <option value="{{ $card->payment_token }}">{{ $card->last4 }}
-                                            - {{ $card->brand }}</option>
+                                        <option value="{{ $card->payment_token }}">{{ $card->card_mask }}
+                                            - {{ $card->card_brand }}</option>
                                     @endforeach
                                 </select>
                             </div>
-
                         @endif
 
                         <!-- Campos do Novo Cartão -->
@@ -390,6 +389,30 @@
             }
         });
 
+        const requiredFields = document.querySelectorAll("#user input[required]");
+        const subscriptionTab = document.getElementById("subscription-tab");
+
+        function checkFormCompletion() {
+            let allFilled = true;
+            requiredFields.forEach(input => {
+                if (!input.value.trim()) {
+                    allFilled = false;
+                }
+            });
+
+            if (allFilled) {
+                subscriptionTab.classList.remove("disabled");
+            } else {
+                subscriptionTab.classList.add("disabled");
+            }
+        }
+
+        requiredFields.forEach(input => {
+            input.addEventListener("input", checkFormCompletion);
+        });
+
+        checkFormCompletion();
+
         // Função para gerar o payment_token antes de enviar o formulário
         document.getElementById("form_subscribe").addEventListener("submit", async function (event) {
             event.preventDefault(); // Impede o envio até termos o token
@@ -420,6 +443,38 @@
                 console.error("Erro ao gerar token do cartão:", error);
                 alert("Erro ao processar o cartão.");
             }
+        });
+
+        function applyMask(input, mask) {
+            input.addEventListener("input", () => formatInput(input, mask));
+            input.addEventListener("paste", () => formatInput(input, mask));
+
+            if (input.value) {
+                formatInput(input, mask);
+            }
+        }
+
+        function formatInput(input, mask) {
+            let value = input.value.replace(/\D/g, ""); // Remove tudo que não for número
+            let maskedValue = "";
+            let maskIndex = 0;
+            let valueIndex = 0;
+
+            while (maskIndex < mask.length && valueIndex < value.length) {
+                if (mask[maskIndex] === "#") {
+                    maskedValue += value[valueIndex++];
+                } else {
+                    maskedValue += mask[maskIndex];
+                }
+                maskIndex++;
+            }
+
+            input.value = maskedValue;
+        }
+
+        // Aplica máscaras automaticamente em todos os inputs com [data-mask]
+        document.querySelectorAll("[data-mask]").forEach(input => {
+            applyMask(input, input.getAttribute("data-mask"));
         });
     });
 
@@ -474,6 +529,7 @@
             console.error('Erro ao fazer logout:', error);
         }
     }
+
 </script>
 </body>
 </html>

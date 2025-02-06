@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Account;
+use App\Models\CustomerCard;
 use App\Models\Plan;
 use App\Models\Url;
 use Illuminate\Http\Request;
@@ -24,7 +25,6 @@ class AccountController extends Controller
             $account = Auth::user();
             $url = $account->urls()->first();
             return redirect()->route('account.webhook.view', [
-                'account_slug' => $account->slug,
                 'url_hash' => $url->hash,
             ]);
         }
@@ -41,7 +41,6 @@ class AccountController extends Controller
             $account = Auth::user();
             $url = $account->urls()->first();
             return redirect()->route('account.webhook.view', [
-                'account_slug' => $account->slug,
                 'url_hash' => $url->hash,
             ]);
         }
@@ -98,7 +97,6 @@ class AccountController extends Controller
             return response()->json([
                 'success' => 'Conta criada com sucesso!',
                 'redirect' => route('account.webhook.view', [
-                    'account_slug' => $account->slug,
                     'url_hash' => $url->hash
                 ]),
             ]);
@@ -138,7 +136,6 @@ class AccountController extends Controller
                     'success' => 'Login realizado com sucesso!',
                     'user' => $account,
                     'redirect' => route('account.webhook.view', [
-                        'account_slug' => $account->slug,
                         'url_hash' => $url->hash
                     ]),
                 ]);
@@ -222,7 +219,7 @@ class AccountController extends Controller
         if (Auth::check()) {
             $account = Auth::user();
             $plans = Plan::where('active', true)->get();
-            $savedCards = [];
+            $savedCards = $account->customer_cards()->get();
             return view('account.profile', compact('account', 'plans', 'savedCards'));
         }
 
@@ -232,7 +229,13 @@ class AccountController extends Controller
     public function updateProfile(Request $request)
     {
         $account = Auth::user();
-        // Validação dos campos
+        $request->merge([
+            'cpf' => preg_replace('/\D/', '', $request->input('cpf')),
+            'zipcode' => preg_replace('/\D/', '', $request->input('zipcode')),
+            'birth_date' => Carbon::createFromFormat('d/m/Y', $request->input('birth_date'))->format('Y-m-d'),
+            'phone' => preg_replace('/\D/', '', $request->input('phone'))
+        ]);
+
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'email' => "required|email|unique:accounts,email,{$account->id}",
@@ -255,15 +258,6 @@ class AccountController extends Controller
 
         try {
             $validated = $validator->validated();
-
-            if ($request->has('birth_date')) {
-                try {
-                    $validated['birth_date'] = Carbon::createFromFormat('d/m/Y', $request->input('birth_date'))->format('Y-m-d');
-                } catch (\Exception $e) {
-                    return redirect()->back()->withErrors(['birth_date' => 'Formato de data inválido. Use DD/MM/YYYY.'])->withInput();
-                }
-            }
-
             // Atualiza os dados do usuário autenticado
             $account->update($validated);
 

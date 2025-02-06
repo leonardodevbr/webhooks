@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Account;
+use App\Models\Url;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 use PHPUnit\Framework\Attributes\Test;
@@ -29,7 +30,7 @@ class AccountFeatureTest extends TestCase
     #[Test]
     public function it_fails_to_register_duplicate_email()
     {
-        $account = Account::factory()->create(['email' => 'duplicate@example.com']);
+        Account::factory()->create(['email' => 'duplicate@example.com']);
 
         $response = $this->postJson(route('register'), [
             'name' => 'Test User',
@@ -70,7 +71,10 @@ class AccountFeatureTest extends TestCase
     #[Test]
     public function it_redirects_guest_users_to_login()
     {
-        $response = $this->get(route('account.webhook.view', ['account_slug' => 'test', 'url_hash' => 'test']));
+        $account = Account::factory()->create();
+        $url = Url::factory()->create(['account_id' => $account->id]);
+
+        $response = $this->get(route('account.webhook.view', ['url_hash' => $url->hash]));
         $response->assertStatus(302);
         $response->assertRedirect(route('form.login'));
     }

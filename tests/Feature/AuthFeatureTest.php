@@ -17,7 +17,7 @@ class AuthFeatureTest extends TestCase
     #[Test]
     public function it_can_register_a_user()
     {
-        $response = $this->postJson('/account/register', [
+        $response = $this->postJson(route('register'), [
             'name' => 'Test User',
             'email' => 'test@example.com',
             'password' => 'password',
@@ -31,7 +31,7 @@ class AuthFeatureTest extends TestCase
     #[Test]
     public function it_can_login_a_user()
     {
-        $user = Account::create([
+        Account::create([
             'name' => 'Test User',
             'email' => 'test@example.com',
             'password' => Hash::make('password'),
@@ -48,7 +48,7 @@ class AuthFeatureTest extends TestCase
     #[Test]
     public function it_blocks_invalid_login()
     {
-        $response = $this->postJson('/account/login', [
+        $response = $this->postJson(route('login'), [
             'email' => 'wrong@example.com',
             'password' => 'wrongpassword',
         ]);
@@ -59,7 +59,7 @@ class AuthFeatureTest extends TestCase
     #[Test]
     public function it_denies_access_to_protected_route_without_authentication()
     {
-        $response = $this->getJson('/{account_slug}/create-url');
+        $response = $this->getJson(route('plans.index'));
         $response->assertStatus(401);
     }
 
@@ -81,7 +81,7 @@ class AuthFeatureTest extends TestCase
 
         $this->actingAs($user);
 
-        $response = $this->getJson('/webhook-retransmission/urls');
+        $response = $this->getJson(route('webhook.retransmission.list'));
 
         $response->assertStatus(200);
     }
@@ -89,25 +89,20 @@ class AuthFeatureTest extends TestCase
     #[Test]
     public function it_can_logout_a_user()
     {
-        $user = Account::create([
+        $account = Account::create([
             'name' => 'Test User',
             'email' => 'test@example.com',
             'password' => Hash::make('password'),
             'hash' => Str::uuid(),
             'slug' => 'test-user',
+            'is_admin' => true
         ]);
 
-        Auth::attempt([
-            'email' => 'test@example.com',
-            'password' => 'password',
-        ]);
+        $this->actingAs($account);
 
-        $this->actingAs($user);
+        $this->postJson(route('logout'))->assertStatus(200);
 
-        $this->postJson('/account/logout')->assertStatus(200);
-
-        // Testar se o logout realmente removeu a sessão
-        $response = $this->getJson('/{account_slug}/create-url');
+        $response = $this->getJson(route('plans.index'));
         $response->assertStatus(401);
     }
 }
