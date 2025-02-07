@@ -8,7 +8,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\FacadesLog;
 use Illuminate\Support\Str;
 use Pusher\Pusher;
 
@@ -380,8 +379,7 @@ class WebhookController extends Controller
 
             foreach ($retransmissionUrls as $retransmissionUrl) {
                 if (!$retransmissionUrl->is_online) {
-                    $this->triggerPusherEvent(['id' => $webhookId, 'url' => $retransmissionUrl->url],
-                        'local-retransmission');
+                    $this->triggerPusherEvent(['id' => $webhookId, 'url' => $retransmissionUrl->url], 'local-retransmission');
                 } else {
                     $queryParams = is_string($webhook->query_params)
                         ? json_decode($webhook->query_params, true)
@@ -394,17 +392,29 @@ class WebhookController extends Controller
                         ? json_decode($webhook->headers, true)
                         : ($webhook->headers ?? []);
 
-                    unset($headers['host']);
+                    // 🔹 Lista de headers que podem ser mantidos
+                    $allowedHeaders = [
+                        'content-length', 'accept-encoding', 'accept',
+                        'user-agent', 'content-type', 'authorization'
+                    ];
+
+                    // 🔥 Filtra os headers antes de enviar a requisição
+                    $filteredHeaders = [];
+                    foreach ($headers as $key => $value) {
+                        if (in_array(strtolower($key), $allowedHeaders)) {
+                            $filteredHeaders[$key] = $value;
+                        }
+                    }
 
                     Log::info("🔍 Enviando requisição HTTP:", [
                         'method' => $webhook->method,
                         'url' => $fullUrl,
-                        'headers' => $headers,
+                        'headers' => $filteredHeaders,
                         'body' => $webhook->body,
                     ]);
 
                     try {
-                        $response = Http::withHeaders($headers)
+                        $response = Http::withHeaders($filteredHeaders)
                             ->send($webhook->method, $fullUrl, [
                                 'body' => $webhook->body,
                             ]);
@@ -418,7 +428,7 @@ class WebhookController extends Controller
                         ]);
 
                         if ($response->serverError()) {
-                            Log::warning("⚠️ Webhook retransmitido com sucesso, mas o servidor de destino retornou erro 500.", [
+                            Log::warning("⚠️ Webhook retransmitido, mas o servidor de destino retornou erro 500.", [
                                 'url' => $fullUrl,
                                 'response_status' => $response->status(),
                                 'response_body' => $response->body(),
@@ -448,6 +458,7 @@ class WebhookController extends Controller
             return response()->json(['error' => 'Erro ao processar a solicitação.'], 500);
         }
     }
+
 
     public function listUrls()
     {

@@ -88,12 +88,17 @@ document.addEventListener("DOMContentLoaded", async () => {
         const xhr = new XMLHttpRequest();
         xhr.open(webhook.method, fullUrl);
 
-        // Configura os headers válidos
-        if (webhook.headers && typeof webhook.headers === 'object') {
-            const unsafeHeaders = ["host", "cookie", "connection", "user-agent", "content-length", "accept-encoding",];
+        // Lista de cabeçalhos permitidos (excluindo os bloqueados pelo navegador)
+        const allowedHeaders = [
+            "postman-token", "accept", "content-type"
+        ];
 
+        // Lista de headers que o navegador bloqueia
+        const forbiddenHeaders = ["host", "user-agent", "content-length", "accept-encoding"];
+
+        if (webhook.headers && typeof webhook.headers === "object") {
             Object.entries(webhook.headers).forEach(([key, value]) => {
-                if (!unsafeHeaders.includes(key.toLowerCase())) {
+                if (allowedHeaders.includes(key.toLowerCase()) && !forbiddenHeaders.includes(key.toLowerCase())) {
                     const headerValue = Array.isArray(value) ? value.join(", ") : value;
                     xhr.setRequestHeader(key, headerValue);
                 }
@@ -391,7 +396,7 @@ function showWebhookDetails(webhook, item) {
         let formData = "";
         let headers = "";
 
-        // Verifica e parseia os campos principais do webhook
+        // Função para parsear JSON de forma segura
         const parseJSON = (data) => {
             try {
                 return JSON.stringify(JSON.parse(data), null, 2);
@@ -405,37 +410,45 @@ function showWebhookDetails(webhook, item) {
             body = webhook.body ? JSON.stringify(JSON.parse(webhook.body), null, 2) : null;
         } catch (error) {
             console.warn("Corpo não está em JSON válido:", webhook.body);
-            body = webhook.body || null; // Exibe o conteúdo bruto como fallback
+            body = webhook.body || null;
         }
 
         formData = webhook.form_data && webhook.form_data.length ? JSON.stringify(webhook.form_data, null, 2) : null;
-
         queryParams = webhook.query_params ? JSON.stringify(webhook.query_params, null, 2) : null;
         headers = webhook.headers && webhook.headers.length ? JSON.stringify(webhook.headers, null, 2) : null;
 
-        // Ordem de exibição dos dados
-        const bodySection = `
-            <div class='mt-3'>
-                <strong>Body:</strong>
-                <pre>${body}</pre>
-            </div>`;
-        const formDataSection = `
-            <div class='mt-3'>
-                <strong>Form Data:</strong>
-                <pre>${formData}</pre>
-            </div>`;
-        const queryParamsSection = `
-            <div class='mt-3'>
-                <strong>Query Parameters:</strong>
-                <pre>${queryParams}</pre>
-            </div>`;
-        const headersSection = `
-            <div class='mt-3'>
-                <strong>Headers:</strong>
-                <pre>${headers}</pre>
-            </div>`;
+        // Define a lista de headers essenciais na ordem correta
+        const essentialHeaders = [
+            'content-length', 'accept-encoding', 'host', 'postman-token',
+            'accept', 'user-agent', 'content-type'
+        ];
 
-        // Monta os detalhes do webhook
+        const normalizedHeaders = Object.fromEntries(
+            Object.entries(webhook.headers || {}).map(([key, value]) => [key.toLowerCase(), value])
+        );
+
+        const formatHeaderValue = (key) => normalizedHeaders[key] ?? '-';
+
+        // Seção dos headers essenciais na ordem correta
+        const essentialHeadersHtml = `
+            <tr><td><strong>Headers</strong></td></tr>
+            <tr><td><strong>Host:</strong> ${formatHeaderValue('host')}</td></tr>
+            <tr><td><strong>Content-Type:</strong> ${formatHeaderValue('content-type')}</td></tr>
+            <tr><td><strong>Content-Length:</strong> ${formatHeaderValue('content-length')}</td></tr>
+            <tr><td><strong>Accept-Encoding:</strong> ${formatHeaderValue('accept-encoding')}</td></tr>
+            <tr><td><strong>Accept:</strong> ${formatHeaderValue('accept')}</td></tr>
+            <tr><td><strong>User-Agent:</strong> ${formatHeaderValue('user-agent')}</td></tr>
+        `;
+
+        // Seção dos headers adicionais (ocultos por padrão)
+        const additionalHeadersHtml = Object.entries(normalizedHeaders)
+            .filter(([key]) => !essentialHeaders.includes(key))
+            .map(([key, value]) => `
+                <tr><td><strong>${key}:</strong> ${Array.isArray(value) ? value.join(', ') : value}</td></tr>
+            `)
+            .join('');
+
+        // Estrutura dos detalhes do webhook
         details.innerHTML = `
         <div class="row">
             <div class="col-md-6">
@@ -455,22 +468,40 @@ function showWebhookDetails(webhook, item) {
             <div class="col-md-6">
                 <div class='table-responsive'>
                     <table class="compact-table table table-borderless table-sm table-striped">
-                        <tr><td><strong>Headers</strong></td></tr>
-                        ${Object.entries(webhook.headers || {}).map(([header, value]) => `
-                            <tr><td><strong>${header}:</strong> ${Array.isArray(value) ? value.join(', ') : value}</td></tr>
-                        `).join('') || "<tr><td>Não recebido</td></tr>"}
+                        ${essentialHeadersHtml}
+                        ${additionalHeadersHtml ? `<tr id="extra-headers-toggle" style="cursor:pointer; color:blue;"><td>Ver mais headers...</td></tr>` : ""}
+                        <tbody id="extra-headers" style="display:none;">
+                            ${additionalHeadersHtml}
+                        </tbody>
                     </table>
                 </div>
             </div>
         </div>
         <div class="row mt-3">
             <div class="col-12">
-                ${body && body !== '[]' && body !== undefined ? bodySection : ""}
-                ${formData && formData !== '[]' && formData !== undefined ? formDataSection : ""}
-                ${queryParams && queryParams !== '[]' && queryParams !== undefined ? queryParamsSection : ""}
+                ${body && body !== '[]' && body !== undefined ? `
+                    <div class='mt-3'><strong>Body:</strong><pre>${body}</pre></div>` : ""}
+                ${formData && formData !== '[]' && formData !== undefined ? `
+                    <div class='mt-3'><strong>Form Data:</strong><pre>${formData}</pre></div>` : ""}
+                ${queryParams && queryParams !== '[]' && queryParams !== undefined ? `
+                    <div class='mt-3'><strong>Query Parameters:</strong><pre>${queryParams}</pre></div>` : ""}
             </div>
         </div>
     `;
+
+        // Adiciona evento para exibir os headers adicionais quando clicar
+        if (additionalHeadersHtml) {
+            document.getElementById("extra-headers-toggle").addEventListener("click", function () {
+                const extraHeaders = document.getElementById("extra-headers");
+                if (extraHeaders.style.display === "none") {
+                    extraHeaders.style.display = "table-row-group";
+                    this.innerHTML = "<td>Ocultar headers...</td>";
+                } else {
+                    extraHeaders.style.display = "none";
+                    this.innerHTML = "<td>Ver mais headers...</td>";
+                }
+            });
+        }
 
         // Marca o item como ativo
         const activeItems = Array.from(document.getElementsByClassName('webhook-item active'));
@@ -482,6 +513,8 @@ function showWebhookDetails(webhook, item) {
         details.innerHTML = "<p>Erro ao exibir detalhes do webhook.</p>";
     }
 }
+
+
 
 function addWebhookToTop(webhook) {
     const webhookList = document.getElementById('webhookList');
