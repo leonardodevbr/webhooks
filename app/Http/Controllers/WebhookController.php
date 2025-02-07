@@ -13,6 +13,13 @@ use Pusher\Pusher;
 
 class WebhookController extends Controller
 {
+    protected WebPushController $webPush;
+
+    public function __construct(WebPushController $webPush)
+    {
+        $this->webPush = $webPush;
+    }
+
     public function createUrl()
     {
         try {
@@ -100,6 +107,7 @@ class WebhookController extends Controller
             if ($webhook) {
                 // Dispara o evento para o Pusher
                 $this->triggerPusherEvent(['id' => $webhook->id], 'new-webhook');
+                $this->webPush->sendNotification($url, $webhook);
 
                 // Verifica se existem URLs de retransmissão e processa
                 $retransmissionUrls = $url->webhook_retransmission_urls()->get();

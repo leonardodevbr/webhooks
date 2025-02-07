@@ -1,8 +1,59 @@
-document.addEventListener("DOMContentLoaded", async () => {
-    const pusherKey = window.env.PUSHER_KEY;
-    const pusherCluster = window.env.PUSHER_CLUSTER;
-    const pusherChannel = window.env.PUSHER_CHANNEL;
+const pusherKey = window.env.PUSHER_KEY;
+const pusherCluster = window.env.PUSHER_CLUSTER;
+const pusherChannel = window.env.PUSHER_CHANNEL;
+const vapIdPublicKey = window.env.VAPID_PUBLIC_KEY;
 
+if ('serviceWorker' in navigator && 'PushManager' in window) {
+    navigator.serviceWorker.register('/sw.js')
+        .then(reg => {
+            console.log("Service Worker registrado com sucesso!", reg);
+        })
+        .catch(err => console.error("Erro ao registrar o Service Worker:", err));
+}
+
+async function subscribeToPushNotifications() {
+    if (Notification.permission === "granted") {
+        console.log("Notificações já estão permitidas.");
+        return;
+    }
+
+    if (Notification.permission === "denied") {
+        alert("As notificações foram bloqueadas no navegador. Ative-as manualmente nas configurações.");
+        return;
+    }
+
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") {
+        console.warn("Permissão de notificação negada pelo usuário");
+        return;
+    }
+
+    await showInitialNotification();
+    updateNotificationButton(true);
+
+    // Marca o modal como visto e recarrega a página para exibir a notificação inicial
+    markModalAsSeen();
+
+    const registration = await navigator.serviceWorker.ready;
+    const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: vapIdPublicKey
+    });
+
+    // Envia o token para o backend
+    fetch(route('webpush.subscribe'), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(subscription)
+    }).then(res => res.json()).then(console.log);
+}
+
+async function markModalAsSeen() {
+    localStorage.setItem("hasSeenFeatureModal", "true");
+    $('#featureModal').modal('hide');
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
     let hasSeenModal = localStorage.getItem("hasSeenFeatureModal") === "true";
     window.retransmitUrls = await loadRetransmissionUrls();
     // Pusher.logToConsole = true;
@@ -13,10 +64,6 @@ document.addEventListener("DOMContentLoaded", async () => {
             backdrop: 'static', keyboard: false
         }).modal('show');
 
-        function markModalAsSeen() {
-            localStorage.setItem("hasSeenFeatureModal", "true");
-            $('#featureModal').modal('hide');
-        }
 
         // Botão "Entendido"
         const understoodButtonElement = document.getElementById("understoodButton");
@@ -29,17 +76,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         // Botão "Ok! Habilite as notificações"
         if (enableNotificationsElement) {
             enableNotificationsElement.addEventListener("click", async () => {
-                const permission = await Notification.requestPermission();
-                if (permission === "granted") {
-                    await showInitialNotification();
-
-                    updateNotificationButton(true);
-
-                    // Marca o modal como visto e recarrega a página para exibir a notificação inicial
-                    markModalAsSeen();
-                } else {
-                    alert("Permissão para notificações foi negada.");
-                }
+                await subscribeToPushNotifications();
             });
         }
     }
@@ -59,12 +96,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 
             // Adicionando o webhook ao topo da lista
             addWebhookToTop(data);
-
-            // Exibindo notificação, se permitido
-            let notificationsEnabled = await getNotificationStatus();
-            if (notificationsEnabled && Notification.permission === "granted") {
-                showNotification(data);
-            }
         } catch (error) {
             console.error("Erro ao carregar o webhook:", error);
         }
@@ -182,7 +213,6 @@ function displayRetransmissionUrls(retransmitUrls) {
         tbody.appendChild(row);
     });
 }
-
 
 async function removeRetransmissionUrl(id) {
     try {
@@ -682,14 +712,6 @@ function updateNotificationButton(isEnabled) {
     }
 }
 
-function showNotification(data) {
-    const options = {
-        body: `Método: ${data.method}\nHost: ${data.host}`, icon: "/apple-touch-icon.png", tag: data.id
-    };
-
-    new Notification("Novo Webhook Recebido", options);
-}
-
 async function toggleNotifications(event) {
     if (event) event.stopPropagation(); // Evita o fechamento do dropdown
 
@@ -711,15 +733,7 @@ async function toggleNotifications(event) {
 
         if (data.success) {
             if (data.notifications_enabled) {
-                Notification.requestPermission().then(permission => {
-                    if (permission === "granted") {
-                        showInitialNotification();
-                        updateNotificationButton(true);
-                    } else {
-                        updateNotificationButton(false);
-                        alert("Permissão para notificações negada.");
-                    }
-                });
+                await subscribeToPushNotifications();
             } else {
                 updateNotificationButton(false);
                 alert("Notificações desativadas.");

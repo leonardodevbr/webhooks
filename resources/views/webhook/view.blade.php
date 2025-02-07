@@ -305,6 +305,7 @@
         PUSHER_KEY: "{{ env('PUSHER_KEY') }}",
         PUSHER_CLUSTER: "{{ env('PUSHER_CLUSTER') }}",
         PUSHER_CHANNEL: "{{ env('PUSHER_CHANNEL') }}",
+        VAPID_PUBLIC_KEY: "{{ env('VAPID_PUBLIC_KEY') }}"
     };
 </script>
 <script>
