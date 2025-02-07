@@ -430,8 +430,8 @@
 
             try {
                 const result = await EfiPay.CreditCard
-                    .setAccount("3300cfede83e9b24a4c6a24457b129eb") // Substituir pelo account correto
-                    .setEnvironment("sandbox") // Trocar para "production" em produção
+                    .setAccount("{{env('EFI_PAY_ACCOUNT_ID')}}")
+                    .setEnvironment("{{env('EFI_PAY_ENV', 'sandbox')}}")
                     .setCreditCardData(cardData)
                     .getPaymentToken();
 
