@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\WebPushController;
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\EfiPayWebhookController;
 use App\Http\Controllers\PlanController;
@@ -9,6 +10,7 @@ use App\Http\Controllers\WebhookUrlController;
 use Illuminate\Support\Facades\Route;
 
 // Home e Autenticação
+Route::post('/webpush/subscribe', [WebPushController::class, 'subscribe'])->name('webpush.subscribe');
 Route::get('/', [WebhookController::class, 'createUrl'])->name('webhook.create');
 Route::post('/create-new', [WebhookController::class, 'createNewUrl'])->name('webhook.create-new-url');
 
