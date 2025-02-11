@@ -24,4 +24,6 @@ interface IPaymentService
 
     public function setPaymentMethod(string $subscriptionId, array $paymentData);
 
+    public function getNotificationDetails(string $notificationToken);
+
 }

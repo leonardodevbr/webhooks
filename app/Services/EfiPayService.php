@@ -139,6 +139,7 @@ class EfiPayService implements IPaymentService
     public function createSubscription(array $subscriptionData)
     {
         $accessToken = $this->getAccessToken();
+        $notificationUrl = config('services.efipay.notification_url');
 
         // Estrutura base dos itens
         $payload = [
@@ -148,6 +149,9 @@ class EfiPayService implements IPaymentService
                     'value' => (int) ($subscriptionData['price'] * 100), // Valor em centavos
                     'amount' => 1
                 ]
+            ],
+            'metadata' => [
+                'notification_url' => $notificationUrl
             ]
         ];
 
@@ -293,5 +297,19 @@ class EfiPayService implements IPaymentService
 
         throw new \Exception('Erro ao definir forma de pagamento da assinatura: '.$response->body());
     }
+
+    public function getNotificationDetails(string $notificationToken)
+    {
+        $accessToken = $this->getAccessToken();
+        $response = Http::withToken($accessToken)
+            ->get("{$this->baseUrl}/notification/{$notificationToken}");
+
+        if ($response->successful()) {
+            return $response->json();
+        }
+
+        throw new \Exception('Erro ao obter detalhes da notificação: ' . $response->body());
+    }
+
 
 }

@@ -19,7 +19,7 @@
 </head>
 <body>
 <nav class="navbar navbar-light bg-dark px-3">
-    <span class="navbar-brand text-light">Monitor de Webhooks</span>
+    <span class="navbar-brand logo"></span>
 
     <div>
         @if (auth()->check())
