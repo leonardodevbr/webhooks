@@ -20,7 +20,7 @@
 </head>
 <body>
 <nav class="navbar navbar-light bg-dark px-3">
-    <span class="navbar-brand text-light">Monitor de Webhooks</span>
+    <span class="navbar-brand logo"></span>
     <div>
         @if (auth()->check())
             <div class="dropdown">
@@ -98,20 +98,23 @@
 
                         <div class="form-group">
                             <label for="cpf">CPF</label>
-                            <input type="text" class="form-control" id="cpf" name="cpf" data-mask="###.###.###-##" maxlength="14"
+                            <input type="text" class="form-control" id="cpf" name="cpf" data-mask="###.###.###-##"
+                                   maxlength="14"
                                    value="{{ old('cpf', auth()->user()->cpf ?? '') }}" required>
                         </div>
 
                         <div class="form-group">
                             <label for="birth_date">Data de Nascimento</label>
-                            <input type="text" class="form-control datepicker" id="birth_date" name="birth_date" data-mask="##/##/####" maxlength="10"
+                            <input type="text" class="form-control datepicker" id="birth_date" name="birth_date"
+                                   data-mask="##/##/####" maxlength="10"
                                    value="{{ old('birth_date', auth()->user()->birth_date ? \Carbon\Carbon::parse(auth()->user()->birth_date)->format('d/m/Y') : '') }}"
                                    required autocomplete="off">
                         </div>
 
                         <div class="form-group">
                             <label for="phone">Telefone</label>
-                            <input type="text" class="form-control" id="phone" name="phone" data-mask="(##) #####-####" maxlength="15"
+                            <input type="text" class="form-control" id="phone" name="phone" data-mask="(##) #####-####"
+                                   maxlength="15"
                                    value="{{ old('phone', auth()->user()->phone ?? '') }}" required>
                         </div>
                     </div>
@@ -138,7 +141,8 @@
 
                         <div class="form-group">
                             <label for="zipcode">CEP</label>
-                            <input type="text" class="form-control" id="zipcode" name="zipcode" data-mask="#####-###" maxlength="9"
+                            <input type="text" class="form-control" id="zipcode" name="zipcode" data-mask="#####-###"
+                                   maxlength="9"
                                    value="{{ old('zipcode', auth()->user()->zipcode ?? '') }}" required>
                         </div>
 
@@ -162,17 +166,19 @@
 
         <!-- Aba: Assinatura -->
         <div class="tab-pane fade pb-5" id="subscription">
-            @if(auth()->user()->subscription)
+            @if($subscription)
                 <!-- Assinatura ativa -->
                 <h5>Plano Atual</h5>
-                <p><strong>Plano:</strong> {{ auth()->user()->subscription->plan->name }}</p>
+                <p><strong>Plano:</strong> {{ $subscription->plan->name }}</p>
                 <p><strong>Valor:</strong>
-                    R$ {{ number_format(auth()->user()->subscription->plan->price, 2, ',', '.') }}
-                    /{{ ucfirst(auth()->user()->subscription->plan->billing_cycle) }}</p>
+                    R$ {{ number_format($subscription->plan->price, 2, ',', '.') }}
+                    /{{ ucfirst($subscription->plan->billing_cycle) }}</p>
                 <p><strong>Status:</strong> Ativo</p>
 
-                <form action="{{ route('subscription.cancel') }}" method="POST" class="mt-3">
+                <form action="{{ route('subscription.cancel',['subscription_id' => $subscription->id]) }}" method="POST"
+                      class="mt-3">
                     @csrf
+                    @method('DELETE')
                     <button type="submit" class="btn btn-danger">Cancelar Assinatura</button>
                 </form>
 
@@ -189,9 +195,9 @@
                         </tr>
                         </thead>
                         <tbody>
-                        @forelse(auth()->user()->payments as $payment)
+                        @forelse($payments as $payment)
                             <tr>
-                                <td>{{ $payment->gateway_reference }}</td>
+                                <td>{{ $payment->external_payment_id }}</td>
                                 <td>
                                     @if($payment->status == 'approved' || $payment->status == 'paid')
                                         <span class="badge badge-success">Pago</span>
@@ -219,124 +225,176 @@
                         </tbody>
                     </table>
                 </div>
+            @elseif($pendingPayment)
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>💳 Pague via Boleto</h6>
+                        <p><strong>Vencimento:</strong> {{ $pendingPayment->details['expire_at'] }}</p>
+                        <p><strong>Código de Barras:</strong> <br>
+                            <span style="font-size: 18px; font-family: monospace;">{{ $pendingPayment->details['barcode'] }}</span>
+                        </p>
+                        <a href="{{ $pendingPayment->details['billet_link'] }}" class="btn btn-primary" target="_blank">
+                            🔗 Visualizar Boleto
+                        </a>
+                        <a href="{{ $pendingPayment->details['pdf'] }}" class="btn btn-secondary" target="_blank">
+                            📄 Baixar PDF
+                        </a>
+                    </div>
 
-            @else
-                <!-- Sem assinatura, exibir planos -->
-                <h5>Escolha um Plano</h5>
-                <div class="table-responsive">
-                    <table class="table table-bordered">
-                        <thead>
-                        <tr>
-                            <th>Plano</th>
-                            <th>Preço</th>
-                            <th>URLs</th>
-                            <th>Webhooks por URL</th>
-                            <th>Retransmissões</th>
-                            <th>Notificações</th>
-                        </tr>
-                        </thead>
-                        <tbody>
-                        @foreach($plans as $plan)
-                            <tr>
-                                <td>{{ $plan->name }}</td>
-                                <td>R$ {{ number_format($plan->price, 2, ',', '.') }}
-                                    /{{ ucfirst($plan->billing_cycle) }}</td>
-                                <td>{{ $plan->max_urls }}</td>
-                                <td>{{ $plan->max_webhooks_per_url }}</td>
-                                <td>{{ $plan->max_retransmission_urls }}</td>
-                                <td>{{ $plan->real_time_notifications ? 'Sim' : 'Não' }}</td>
-                            </tr>
-                        @endforeach
-                        </tbody>
-                    </table>
+                    <div class="col-md-6">
+                        <h6>🔗 Pague via PIX</h6>
+                        <p><strong>Escaneie o QR Code:</strong></p>
+                        <img src="{{ $pendingPayment->details['pix']['qrcode_image'] }}" alt="QR Code PIX" class="img-fluid" width="250">
+                        <p><strong>Código PIX:</strong></p>
+                        <textarea class="form-control" rows="2" onclick="this.select(); document.execCommand('copy');">
+                {{ $pendingPayment->details['pix']['qrcode'] }}
+            </textarea>
+                        <small class="text-muted">Clique para copiar o código</small>
+                    </div>
                 </div>
-                <form action="{{ route('subscription.subscribe') }}" id="form_subscribe" method="POST">
-                    <div class="form-group">
-                        <label for="plan">Selecione um Plano</label>
-                        <select class="form-control" id="plan" name="plan_id" required>
-                            @foreach($plans as $plan)
-                                <option value="{{ $plan->id }}">{{ $plan->name }} -
-                                    R$ {{ number_format($plan->price, 2, ',', '.') }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="payment_method">Forma de Pagamento</label>
-                        <select class="form-control" id="payment_method" name="payment_method" required>
-                            <option value="boleto">Boleto Bancário</option>
-                            <option value="credit_card">Cartão de Crédito</option>
-                        </select>
-                    </div>
-
-                    <!-- Campos do Cartão -->
-                    <div id="card_fields" style="display: none;">
-                        <h5 class="mt-3">Dados do Cartão</h5>
-
-                        @if(!empty($savedCards))
-                            <!-- Escolher um cartão salvo -->
+            @else
+                <div>
+                    <div id="payment-container">
+                        <!-- Sem assinatura, exibir planos -->
+                        <h5>Escolha um Plano</h5>
+                        <div class="table-responsive">
+                            <table class="table table-bordered">
+                                <thead>
+                                <tr>
+                                    <th>Plano</th>
+                                    <th>Preço</th>
+                                    <th>URLs</th>
+                                    <th>Webhooks por URL</th>
+                                    <th>Retransmissões</th>
+                                    <th>Notificações</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                @foreach($plans as $plan)
+                                    <tr>
+                                        <td>{{ $plan->name }}</td>
+                                        <td>R$ {{ number_format($plan->price, 2, ',', '.') }}
+                                            /{{ ucfirst($plan->billing_cycle) }}</td>
+                                        <td>{{ $plan->max_urls }}</td>
+                                        <td>{{ $plan->max_webhooks_per_url }}</td>
+                                        <td>{{ $plan->max_retransmission_urls }}</td>
+                                        <td>{{ $plan->real_time_notifications ? 'Sim' : 'Não' }}</td>
+                                    </tr>
+                                @endforeach
+                                </tbody>
+                            </table>
+                        </div>
+                        <form action="{{ route('subscription.subscribe') }}" id="form_subscribe" method="POST">
                             <div class="form-group">
-                                <label for="saved_cards">Usar Cartão Salvo</label>
-                                <select class="form-control" id="saved_cards">
-                                    <option value="">Novo Cartão</option>
-                                    @foreach($savedCards as $card)
-                                        <option value="{{ $card->payment_token }}">{{ $card->card_mask }}
-                                            - {{ $card->card_brand }}</option>
+                                <label for="plan">Selecione um Plano</label>
+                                <select class="form-control" id="plan" name="plan_id" required>
+                                    @foreach($plans as $plan)
+                                        <option value="{{ $plan->id }}">{{ $plan->name }} -
+                                            R$ {{ number_format($plan->price, 2, ',', '.') }}</option>
                                     @endforeach
                                 </select>
                             </div>
-                        @endif
 
-                        <!-- Campos do Novo Cartão -->
-                        <div id="new_card_fields">
                             <div class="form-group">
-                                <label for="card_number">Número do Cartão <span id="card_brand_info"></span></label>
-                                <div class="input-group">
-                                    <input type="text" class="form-control" id="card_number" name="card_number"
-                                           maxlength="19">
-                                    <div id="card_brand_div" class="input-group-append d-none">
-                                        <div class="input-group-text brand-append">
-                                            <span id="card_brand_icon" class="card-brand"></span>
+                                <label>Forma de Pagamento</label>
+                                <select class="form-control" id="payment_method" name="payment_method" required>
+                                    <option value="banking_billet">Boleto Bancário</option>
+                                    <option value="credit_card">Cartão de Crédito</option>
+                                </select>
+                            </div>
+
+                            <!-- Seção de Cartões -->
+                            <div id="card_section" style="display: none;">
+                                <h5 class="mt-3">Escolha um Cartão</h5>
+
+                                <div class="form-group">
+                                    <div class="custom-control custom-radio">
+                                        <input type="radio" id="new_card" name="card_option"
+                                               class="custom-control-input" value="new" checked>
+                                        <label class="custom-control-label" for="new_card">Novo Cartão</label>
+                                    </div>
+
+                                    @if(!empty($savedCards))
+                                        <div class="custom-control custom-radio">
+                                            <input type="radio" id="saved_card" name="card_option"
+                                                   class="custom-control-input" value="saved">
+                                            <label class="custom-control-label" for="saved_card">Cartão Salvo</label>
+                                        </div>
+
+                                        <!-- Lista de cartões salvos -->
+                                        <div id="saved_cards_section" class="mt-2" style="display: none;">
+                                            @foreach($savedCards as $card)
+                                                <div class="custom-control custom-radio">
+                                                    <input type="radio" id="card_{{ $loop->index }}"
+                                                           name="saved_card_token"
+                                                           class="custom-control-input"
+                                                           value="{{ $card->payment_token }}">
+                                                    <label class="custom-control-label" for="card_{{ $loop->index }}">
+                                                        {{ $card->card_mask }} - {{ ucfirst($card->card_brand) }}
+                                                    </label>
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    @endif
+                                </div>
+
+                                <!-- Campos do Novo Cartão -->
+                                <div id="new_card_fields">
+                                    <div class="form-group">
+                                        <label for="card_number">Número do Cartão <span
+                                                id="card_brand_info"></span></label>
+                                        <div class="input-group">
+                                            <input type="text" class="form-control" id="card_number" name="card_number"
+                                                   maxlength="19">
+                                            <div id="card_brand_div" class="input-group-append d-none">
+                                                <div class="input-group-text brand-append">
+                                                    <span id="card_brand_icon" class="card-brand"></span>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            </div>
 
-                            <div class="form-group">
-                                <label for="card_holder">Nome no Cartão</label>
-                                <input type="text" class="form-control" id="card_holder" name="card_holder">
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-4">
                                     <div class="form-group">
-                                        <label for="expiration">Validade (MM/AA)</label>
-                                        <input type="text" class="form-control" id="expiration" name="expiration">
+                                        <label for="card_holder">Nome no Cartão</label>
+                                        <input type="text" class="form-control" id="card_holder" name="card_holder">
+                                    </div>
+
+                                    <div class="row">
+                                        <div class="col-md-4">
+                                            <div class="form-group">
+                                                <label for="expiration">Validade (MM/AA)</label>
+                                                <input type="text" class="form-control" id="expiration"
+                                                       data-mask="##/##" maxlength="5" name="expiration">
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-group">
+                                                <label for="cvv">CVV</label>
+                                                <input type="text" class="form-control" id="cvv" name="cvv"
+                                                       maxlength="4">
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Campos ocultos para o token gerado -->
+                                    <input type="hidden" id="payment_token" name="payment_token">
+                                    <input type="hidden" id="card_mask" name="card_mask">
+                                    <input type="hidden" id="card_brand" name="card_brand">
+
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="save_card" name="save_card">
+                                        <label class="form-check-label" for="save_card">Salvar cartão para futuras
+                                            transações</label>
                                     </div>
                                 </div>
-                                <div class="col-md-3">
-                                    <div class="form-group">
-                                        <label for="cvv">CVV</label>
-                                        <input type="text" class="form-control" id="cvv" name="cvv">
-                                    </div>
-                                </div>
                             </div>
 
-                            <!-- Input oculto para armazenar o token e card_mask -->
-                            <input type="hidden" id="payment_token" name="payment_token">
-                            <input type="hidden" id="card_mask" name="card_mask">
-                            <input type="hidden" id="card_brand" name="card_brand">
-
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="save_card" name="save_card">
-                                <label class="form-check-label" for="save_card">Salvar cartão para futuras
-                                    transações</label>
-                            </div>
-                        </div>
+                            <button type="submit" class="btn btn-primary mt-3">Confirmar Assinatura</button>
+                        </form>
                     </div>
+                    <div id="payment-result"></div>
+                </div>
 
-                    <button type="submit" class="btn btn-primary mt-3">Confirmar Assinatura</button>
-                </form>
             @endif
         </div>
     </div>
@@ -350,36 +408,46 @@
 
 <script>
     document.addEventListener("DOMContentLoaded", function () {
+        const paymentMethod = document.getElementById("payment_method");
+        const cardSection = document.getElementById("card_section");
+        const newCardFields = document.getElementById("new_card_fields");
+        const savedCardsSection = document.getElementById("saved_cards_section");
+
+        const newCardRadio = document.getElementById("new_card");
+        const savedCardRadio = document.getElementById("saved_card");
+
         const cardNumberInput = document.getElementById("card_number");
         const cardBrandInput = document.getElementById("card_brand");
         const cardBrandInfo = document.getElementById("card_brand_info");
         const cardBrandDiv = document.getElementById("card_brand_div");
         const cardBrandIcon = document.getElementById("card_brand_icon");
 
-        // Detectar a bandeira quando o usuário digitar os primeiros 4 números
+        // Seção para exibir boleto e PIX dinamicamente
+        const paymentContainerSection = document.getElementById("payment-container");
+        const paymentResultSection = document.getElementById("payment-result");
+
+        // 🔹 Detecção da bandeira do cartão ao digitar os primeiros 4 números
         cardNumberInput.addEventListener("input", async function () {
             const cardNumber = this.value.replace(/\D/g, ""); // Remove caracteres não numéricos
 
             if (cardNumber.length >= 4) {
                 try {
                     const brand = await EfiPay.CreditCard.setCardNumber(cardNumber).verifyCardBrand();
-                    if (brand === 'unsupported' || brand === 'undefined' ) {
+                    if (brand === "unsupported" || brand === "undefined") {
                         cardBrandIcon.className = "card-brand";
                         cardBrandInfo.innerHTML = " (Bandeira não aceita)";
                         return;
                     }
                     cardBrandInfo.innerHTML = " (" + brand + ")";
-                    console.log("Bandeira: ", brand);
-
                     cardBrandInput.value = brand;
-                    cardBrandDiv.classList.remove('d-none');
+                    cardBrandDiv.classList.remove("d-none");
                     cardBrandIcon.className = "card-brand";
                     cardBrandIcon.classList.add(brand);
                 } catch (error) {
                     console.error("Erro ao identificar a bandeira:", error);
                     cardBrandInput.value = "";
                     cardBrandIcon.className = "card-brand";
-                    cardBrandDiv.classList.add('d-none');
+                    cardBrandDiv.classList.add("d-none");
                     cardBrandInfo.innerHTML = "";
                 }
             } else {
@@ -389,6 +457,28 @@
             }
         });
 
+        // 🔹 Alterna entre Novo Cartão e Cartão Salvo
+        function toggleCardSection() {
+            if (savedCardRadio && savedCardRadio.checked) {
+                newCardFields.style.display = "none";
+                savedCardsSection.style.display = "block";
+            } else {
+                newCardFields.style.display = "block";
+                savedCardsSection.style.display = "none";
+            }
+        }
+
+        if (newCardRadio) newCardRadio.addEventListener("change", toggleCardSection);
+        if (savedCardRadio) savedCardRadio.addEventListener("change", toggleCardSection);
+
+        // 🔹 Exibe ou esconde a seção de cartões conforme o método de pagamento
+        if (paymentMethod) {
+            paymentMethod.addEventListener("change", function () {
+                cardSection.style.display = this.value === "credit_card" ? "block" : "none";
+            });
+        }
+
+        // 🔹 Validação automática dos campos obrigatórios
         const requiredFields = document.querySelectorAll("#user input[required]");
         const subscriptionTab = document.getElementById("subscription-tab");
 
@@ -400,11 +490,7 @@
                 }
             });
 
-            if (allFilled) {
-                subscriptionTab.classList.remove("disabled");
-            } else {
-                subscriptionTab.classList.add("disabled");
-            }
+            subscriptionTab.classList.toggle("disabled", !allFilled);
         }
 
         requiredFields.forEach(input => {
@@ -413,123 +499,106 @@
 
         checkFormCompletion();
 
-        // Função para gerar o payment_token antes de enviar o formulário
+        // 🔹 Envio do formulário via AJAX
         document.getElementById("form_subscribe").addEventListener("submit", async function (event) {
-            event.preventDefault(); // Impede o envio até termos o token
+            event.preventDefault();
 
-            const cardData = {
-                brand: document.getElementById("card_brand").value,
-                number: cardNumberInput.value.replace(/\D/g, ""),
-                expirationMonth: document.getElementById("expiration").value.split("/")[0],
-                expirationYear: "20" + document.getElementById("expiration").value.split("/")[1],
-                cvv: document.getElementById("cvv").value,
-                holderName: document.getElementById("card_holder").value,
-                holderDocument: document.getElementById("cpf").value,
-                reuse: true
-            };
+            const formData = new FormData(this);
+            const submitButton = this.querySelector("button[type=submit]");
+            submitButton.disabled = true;
+            submitButton.innerText = "Processando...";
 
             try {
-                const result = await EfiPay.CreditCard
-                    .setAccount("{{env('EFI_PAY_ACCOUNT_ID')}}")
-                    .setEnvironment("{{env('EFI_PAY_ENV', 'sandbox')}}")
-                    .setCreditCardData(cardData)
-                    .getPaymentToken();
+                const response = await fetch("{{ route('subscription.subscribe') }}", {
+                    method: "POST",
+                    headers: {
+                        "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content"),
+                        "Accept": "application/json"
+                    },
+                    body: formData
+                });
 
-                document.getElementById("payment_token").value = result.payment_token;
-                document.getElementById("card_mask").value = result.card_mask;
+                const result = await response.json();
+                submitButton.disabled = false;
+                submitButton.innerText = "Confirmar Assinatura";
 
-                this.submit(); // Agora pode enviar
+                if (response.ok) {
+                    paymentContainerSection.classList.add('d-none');
+                    handleSubscriptionSuccess(result);
+                } else {
+                    paymentContainerSection.classList.remove('d-none');
+                    alert(result.error || "Ocorreu um erro inesperado.");
+                }
             } catch (error) {
-                console.error("Erro ao gerar token do cartão:", error);
-                alert("Erro ao processar o cartão.");
+                console.error("Erro na requisição:", error);
+                alert("Erro ao processar a assinatura.");
             }
         });
 
+        // 🔹 Exibe os dados do Boleto e PIX dinamicamente
+        function handleSubscriptionSuccess(data) {
+            let successMessage = `<div class="alert alert-success"><strong>${data.message}</strong></div>`;
+
+            if (data.payment) {
+                successMessage += `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>💳 Pague via Boleto</h6>
+                            <p><strong>Vencimento:</strong> ${data.payment.expire_at}</p>
+                            <p><strong>Código de Barras:</strong> <br>
+                                <span style="font-size: 18px; font-family: monospace;">${data.payment.barcode}</span>
+                            </p>
+                            <a href="${data.payment.billet_link}" class="btn btn-primary" target="_blank">
+                                🔗 Visualizar Boleto
+                            </a>
+                            <a href="${data.payment.pdf}" class="btn btn-secondary" target="_blank">
+                                📄 Baixar PDF
+                            </a>
+                        </div>
+
+                        <div class="col-md-6">
+                            <h6>🔗 Pague via PIX</h6>
+                            <p><strong>Escaneie o QR Code:</strong></p>
+                            <img src="${data.payment.pix.qrcode_image}" alt="QR Code PIX" class="img-fluid" width="250">
+                            <p><strong>Código PIX:</strong></p>
+                            <textarea class="form-control" rows="2" onclick="this.select(); document.execCommand('copy');">
+                                ${data.payment.pix.qrcode}
+                            </textarea>
+                            <small class="text-muted">Clique para copiar o código</small>
+                        </div>
+                    </div>
+                `;
+            }
+
+            paymentResultSection.innerHTML = successMessage;
+        }
+
+        // 🔹 Aplica máscaras automaticamente
         function applyMask(input, mask) {
             input.addEventListener("input", () => formatInput(input, mask));
-            input.addEventListener("paste", () => formatInput(input, mask));
-
-            if (input.value) {
-                formatInput(input, mask);
-            }
         }
 
-        function formatInput(input, mask) {
-            let value = input.value.replace(/\D/g, ""); // Remove tudo que não for número
-            let maskedValue = "";
-            let maskIndex = 0;
-            let valueIndex = 0;
-
-            while (maskIndex < mask.length && valueIndex < value.length) {
-                if (mask[maskIndex] === "#") {
-                    maskedValue += value[valueIndex++];
-                } else {
-                    maskedValue += mask[maskIndex];
-                }
-                maskIndex++;
-            }
-
-            input.value = maskedValue;
-        }
-
-        // Aplica máscaras automaticamente em todos os inputs com [data-mask]
         document.querySelectorAll("[data-mask]").forEach(input => {
             applyMask(input, input.getAttribute("data-mask"));
         });
-    });
 
-    $(document).ready(function () {
-        $('.datepicker').datepicker({
-            dateFormat: 'dd/mm/yy',  // Exibe no formato PT-BR
-            changeMonth: true,
-            changeYear: true,
-            yearRange: "1900:2025",
-            showMonthAfterYear: true,
-            showButtonPanel: true,
-            closeText: "Fechar",
-            prevText: "Anterior",
-            nextText: "Próximo",
-            currentText: "Hoje",
-            monthNames: ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
-                "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"],
-            monthNamesShort: ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun",
-                "Jul", "Ago", "Set", "Out", "Nov", "Dez"],
-            dayNames: ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"],
-            dayNamesShort: ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"],
-            dayNamesMin: ["D", "S", "T", "Q", "Q", "S", "S"],
-            weekHeader: "Sm",
-            firstDay: 0,
-            isRTL: false,
-            yearSuffix: "",
-            autoclose: true
-        });
-    });
-
-    document.getElementById("payment_method").addEventListener("change", function () {
-        let paymentMethod = this.value;
-        let cardFields = document.getElementById("card_fields");
-
-        cardFields.style.display = paymentMethod === "credit_card" ? "block" : "none";
-    });
-
-    async function logoutAccount() {
-        try {
-            const response = await fetch("{{ route('logout') }}", {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                }
+        $(document).ready(function () {
+            $(".datepicker").datepicker({
+                dateFormat: "dd/mm/yy",
+                changeMonth: true,
+                changeYear: true,
+                yearRange: "1900:2025",
+                autoclose: true
             });
-            if (response.ok) {
-                location.reload();
-            } else {
-                alert('Erro ao fazer logout.');
-            }
-        } catch (error) {
-            console.error('Erro ao fazer logout:', error);
-        }
-    }
+        });
 
+        async function logoutAccount() {
+            await fetch("{{ route('logout') }}", {method: "POST"});
+            location.reload();
+        }
+    });
 </script>
+
+
 </body>
 </html>

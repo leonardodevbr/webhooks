@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Interfaces\IPaymentService;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class EfiPayService implements IPaymentService
 {
@@ -139,6 +140,7 @@ class EfiPayService implements IPaymentService
     public function createSubscription(array $subscriptionData)
     {
         $accessToken = $this->getAccessToken();
+        $notificationUrl = config('services.efipay.notification_url');
 
         // Estrutura base dos itens
         $payload = [
@@ -148,11 +150,15 @@ class EfiPayService implements IPaymentService
                     'value' => (int) ($subscriptionData['price'] * 100), // Valor em centavos
                     'amount' => 1
                 ]
+            ],
+            'metadata' => [
+                'notification_url' => $notificationUrl,
+                'custom_id' => (string)$subscriptionData['custom_id'] ?? null
             ]
         ];
 
         // Adiciona os detalhes de pagamento conforme o método escolhido
-        if ($subscriptionData['payment_method'] === 'boleto') {
+        if ($subscriptionData['payment_method'] === 'banking_billet') {
             $payload['payment'] = [
                 'banking_billet' => [
                     'customer' => [
@@ -182,7 +188,7 @@ class EfiPayService implements IPaymentService
             $payload['payment'] = [
                 'credit_card' => [
                     'customer' => [
-                        'name' => $subscriptionData['card_holder'],
+                        'name' => $subscriptionData['customer_name'],
                         'cpf' => $subscriptionData['customer_cpf'],
                         'email' => $subscriptionData['customer_email'],
                         'birth' => $subscriptionData['customer_birth'],
@@ -207,6 +213,8 @@ class EfiPayService implements IPaymentService
         // Envio da requisição para a Efí Pay
         $response = Http::withToken($accessToken)
             ->post("{$this->baseUrl}/plan/{$subscriptionData['external_plan_id']}/subscription/one-step", $payload);
+
+        Log::debug("Subscribe Creation Response", $response->json());
 
         if ($response->successful()) {
             return $response->json();
@@ -292,6 +300,33 @@ class EfiPayService implements IPaymentService
         }
 
         throw new \Exception('Erro ao definir forma de pagamento da assinatura: '.$response->body());
+    }
+
+    public function getNotificationDetails(string $notificationToken)
+    {
+        $accessToken = $this->getAccessToken();
+        $response = Http::withToken($accessToken)
+            ->get("{$this->baseUrl}/notification/{$notificationToken}");
+
+        if ($response->successful()) {
+            return $response->json();
+        }
+
+        throw new \Exception('Erro ao obter detalhes da notificação: ' . $response->body());
+    }
+
+    public function getPayment(string $paymentId)
+    {
+        $accessToken = $this->getAccessToken();
+
+        $response = Http::withToken($accessToken)
+            ->get("{$this->baseUrl}/charge/{$paymentId}");
+
+        if ($response->successful()) {
+            return $response->json();
+        }
+
+        throw new \Exception('Erro ao buscar detalhes da assinatura: '.$response->body());
     }
 
 }

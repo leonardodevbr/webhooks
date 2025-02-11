@@ -9,6 +9,8 @@ use App\Http\Controllers\WebhookController;
 use App\Http\Controllers\WebhookUrlController;
 use Illuminate\Support\Facades\Route;
 
+Route::post('/notifications/efipay/_listener', [EfiPayWebhookController::class, 'handle'])->middleware('cors')->name('efipay.webhook');
+
 // Home e Autenticação
 Route::post('/webpush/subscribe', [WebPushController::class, 'subscribe'])->name('webpush.subscribe');
 Route::get('/', [WebhookController::class, 'createUrl'])->name('webhook.create');
@@ -62,7 +64,7 @@ Route::prefix('account')->group(function () {
     Route::get('/profile', [AccountController::class, 'profile'])->name('account.profile');
     Route::put('/profile', [AccountController::class, 'updateProfile'])->name('account.profile.update');
     Route::post('/subscribe', [SubscriptionController::class, 'subscribe'])->name('subscription.subscribe');
-    Route::post('/cancel-subscription', [SubscriptionController::class, 'cancel'])->name('subscription.cancel');
+    Route::delete('/subscription/{subscription_id}', [SubscriptionController::class, 'cancel'])->name('subscription.cancel');
     Route::get('/urls', [WebhookController::class, 'listUrls'])->name('account.list-urls');
     Route::patch('/urls/{id}/update-slug', [WebhookController::class, 'updateSlug'])->name('account.url.update-slug');
     Route::post('/create-url', [WebhookController::class, 'createNewUrl'])->name('account.webhook.create');
@@ -74,6 +76,5 @@ Route::prefix('admin')->middleware(['auth', 'admin'])->group(function () {
     Route::get('plans/{plan}/sync', [PlanController::class, 'sync'])->name('plans.sync');
 });
 
-Route::post('/efipay/_listener', [EfiPayWebhookController::class, 'handle']);
 Route::any('/{url_slug}/{url_hash}', [WebhookController::class, 'customListener'])->name('webhook.custom-listener');
 Route::any('/{url_hash}', [WebhookController::class, 'listener'])->name('webhook.listener');

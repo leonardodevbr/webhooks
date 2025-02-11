@@ -14,7 +14,7 @@ body {
     background: #e9ecef; /* Cinza claro */
     padding: 1rem; /* Ajusta o espaçamento interno */
     border-right: 1px solid #dee2e6;
-    height: calc(100vh - 56px);
+    height: calc(100vh - 83px);
 }
 
 #content {
@@ -262,4 +262,17 @@ table.compact-table td {
 }
 .tooltip.tooltip-warning .arrow::before {
     border-top-color: #ff9800 !important;
+}
+
+.bg-dark{
+    background: #333642!important;
+}
+
+.logo {
+    height: 67px;
+    background-image: url("/images/logo.jpg");
+    width: 235px;
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
 }

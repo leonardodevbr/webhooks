@@ -16,7 +16,7 @@ class AdminUserSeeder extends Seeder
     {
         Account::create([
             'hash' => Str::uuid(),
-            'name' => 'Administrador',
+            'name' => 'Administrador Principal',
             'slug' => 'admin',
             'email' => env('ADMIN_EMAIL', 'admin@admin.com'),
             'password' => Hash::make(env('ADMIN_PASSWORD', '1234qwer')),

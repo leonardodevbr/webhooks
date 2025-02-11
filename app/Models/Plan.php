@@ -30,7 +30,6 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * 
- * @property Collection|Payment[] $payments
  * @property Collection|Subscription[] $subscriptions
  *
  * @package App\Models
@@ -63,11 +62,6 @@ class Plan extends Model
 		'supports_custom_slugs',
 		'real_time_notifications'
 	];
-
-	public function payments(): HasMany
-	{
-		return $this->hasMany(Payment::class);
-	}
 
 	public function subscriptions(): HasMany
 	{

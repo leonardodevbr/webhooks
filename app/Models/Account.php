@@ -9,7 +9,6 @@ namespace App\Models;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User;
 
@@ -23,7 +22,6 @@ use Illuminate\Foundation\Auth\User;
  * @property string $email
  * @property string $password
  * @property bool $is_admin
- * @property int|null $subscription_id
  * @property string|null $cpf
  * @property string|null $phone
  * @property Carbon|null $birth_date
@@ -36,9 +34,9 @@ use Illuminate\Foundation\Auth\User;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * 
- * @property Subscription|null $subscription
  * @property Collection|CustomerCard[] $customer_cards
  * @property Collection|Payment[] $payments
+ * @property Collection|Subscription[] $subscriptions
  * @property Collection|Url[] $urls
  *
  * @package App\Models
@@ -50,7 +48,6 @@ class Account extends User
 
 	protected $casts = [
 		'is_admin' => 'bool',
-		'subscription_id' => 'int',
 		'birth_date' => 'datetime'
 	];
 
@@ -65,7 +62,6 @@ class Account extends User
 		'email',
 		'password',
 		'is_admin',
-		'subscription_id',
 		'cpf',
 		'phone',
 		'birth_date',
@@ -77,11 +73,6 @@ class Account extends User
 		'state'
 	];
 
-	public function subscription(): BelongsTo
-	{
-		return $this->belongsTo(Subscription::class);
-	}
-
 	public function customer_cards(): HasMany
 	{
 		return $this->hasMany(CustomerCard::class);
@@ -90,6 +81,11 @@ class Account extends User
 	public function payments(): HasMany
 	{
 		return $this->hasMany(Payment::class);
+	}
+
+	public function subscriptions(): HasMany
+	{
+		return $this->hasMany(Subscription::class);
 	}
 
 	public function urls(): HasMany

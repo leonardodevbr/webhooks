@@ -46,7 +46,8 @@ return [
     'efipay' => [
         'key' => env('EFI_PAY_KEY'),
         'secret' => env('EFI_PAY_SECRET'),
-        'base_url' => env('EFI_PAY_BASE_URL')
+        'base_url' => env('EFI_PAY_BASE_URL'),
+        'notification_url' => env('EFI_PAY_NOTIFICATION_URL'),
     ],
 
     'payment' => [
