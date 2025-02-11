@@ -20,10 +20,6 @@ return new class extends Migration
             $table->string('password');
             $table->boolean('is_admin')->default(false);
 
-            // Assinatura vinculada
-            $table->unsignedBigInteger('subscription_id')->nullable();
-            $table->foreign('subscription_id')->references('id')->on('subscriptions')->onDelete('set null');
-
             // Campos adicionais para assinatura
             $table->string('cpf')->nullable()->unique();
             $table->string('phone')->nullable();

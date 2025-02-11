@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Interfaces\IPaymentService;
 use App\Models\Account;
 use App\Models\CustomerCard;
 use App\Models\Plan;
@@ -16,6 +17,13 @@ use Illuminate\Support\Str;
 
 class AccountController extends Controller
 {
+    protected IPaymentService $paymentService;
+
+    public function __construct(IPaymentService $paymentService)
+    {
+        $this->paymentService = $paymentService;
+    }
+
     /**
      * Tela de registro de conta.
      */
@@ -220,7 +228,44 @@ class AccountController extends Controller
             $account = Auth::user();
             $plans = Plan::where('active', true)->get();
             $savedCards = $account->customer_cards()->get();
-            return view('account.profile', compact('account', 'plans', 'savedCards'));
+            $subscription = $account->subscriptions()->where('is_active', true)->orderByDesc('created_at')->first();
+            $payments = [];
+            $pendingPayment = null;
+
+            // Busca a última assinatura, independente do status
+            $lastSubscription = $account->subscriptions()->orderByDesc('created_at')->first();
+
+            if (!empty($subscription)) {
+                $payments = $subscription->payments()->get();
+            }
+
+            // Se houver qualquer assinatura, verificar se existe um pagamento pendente via boleto
+            if (!empty($lastSubscription)) {
+                $pendingPayment = $lastSubscription->payments()
+                    ->where('status', 'waiting')
+                    ->where('payment_method', 'banking_billet')
+                    ->orderByDesc('created_at')
+                    ->first();
+
+                // Se houver um pagamento pendente, busca detalhes da cobrança na API
+                if ($pendingPayment) {
+                    $paymentDetails = $this->paymentService->getPayment($pendingPayment->external_payment_id);
+
+                    if (!empty($paymentDetails['data']['payment']['banking_billet'])) {
+                        $billetDetails = $paymentDetails['data']['payment']['banking_billet'];
+
+                        $pendingPayment->details = [
+                            'barcode' => $billetDetails['barcode'] ?? null,
+                            'pix' => $billetDetails['pix'] ?? null,
+                            'billet_link' => $billetDetails['billet_link'] ?? null,
+                            'pdf' => $billetDetails['pdf']['charge'] ?? null,
+                            'expire_at' => Carbon::createFromFormat('Y-m-d', $billetDetails['expire_at'])->format('d/m/Y') ?? null,
+                        ];
+                    }
+                }
+            }
+
+            return view('account.profile', compact('account', 'plans', 'savedCards', 'subscription', 'payments', 'pendingPayment'));
         }
 
         return view('account.login');

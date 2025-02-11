@@ -14,6 +14,7 @@ return new class extends Migration
         Schema::create('subscriptions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('plan_id')->constrained('plans')->onDelete('cascade'); // Plano ativo
+            $table->foreignId('account_id')->constrained('accounts')->onDelete('cascade'); // Conta
 
             $table->string('external_subscription_id')->nullable()->unique();
             $table->timestamp('started_at')->useCurrent(); // Início da assinatura

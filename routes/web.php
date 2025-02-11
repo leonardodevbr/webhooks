@@ -64,7 +64,7 @@ Route::prefix('account')->group(function () {
     Route::get('/profile', [AccountController::class, 'profile'])->name('account.profile');
     Route::put('/profile', [AccountController::class, 'updateProfile'])->name('account.profile.update');
     Route::post('/subscribe', [SubscriptionController::class, 'subscribe'])->name('subscription.subscribe');
-    Route::post('/cancel-subscription', [SubscriptionController::class, 'cancel'])->name('subscription.cancel');
+    Route::delete('/subscription/{subscription_id}', [SubscriptionController::class, 'cancel'])->name('subscription.cancel');
     Route::get('/urls', [WebhookController::class, 'listUrls'])->name('account.list-urls');
     Route::patch('/urls/{id}/update-slug', [WebhookController::class, 'updateSlug'])->name('account.url.update-slug');
     Route::post('/create-url', [WebhookController::class, 'createNewUrl'])->name('account.webhook.create');

@@ -14,10 +14,10 @@ return new class extends Migration
         Schema::create('payments', function (Blueprint $table) {
             $table->id();
             $table->foreignId('account_id')->constrained('accounts')->onDelete('cascade'); // Usuário que fez o pagamento
-            $table->foreignId('plan_id')->constrained('plans')->onDelete('cascade'); // Plano pago
+            $table->foreignId('subscription_id')->constrained('subscriptions')->onDelete('cascade'); // Assinatura relacionada
 
-            $table->string('gateway_reference')->nullable(); // ID do pagamento na Efi Pay
-            $table->enum('status', ['waiting', 'pending', 'approved', 'paid', 'failed', 'expired', 'refunded', 'canceled'])->default('pending');
+            $table->string('external_payment_id')->unique();
+            $table->enum('status', ['new', 'waiting', 'identified', 'approved', 'paid', 'unpaid', 'refunded', 'contested', 'canceled', 'settled', 'expired'])->default('new');
             $table->decimal('amount', 10, 2); // Valor pago
             $table->string('payment_method')->nullable(); // Método de pagamento (Pix, cartão, boleto)
             $table->json('gateway_response')->nullable(); // Resposta da API de pagamento para auditoria

@@ -16,8 +16,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * 
  * @property int $id
  * @property int $account_id
- * @property int $plan_id
- * @property string|null $gateway_reference
+ * @property int $subscription_id
+ * @property string $external_payment_id
  * @property string $status
  * @property float $amount
  * @property string|null $payment_method
@@ -27,7 +27,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property Carbon|null $updated_at
  * 
  * @property Account $account
- * @property Plan $plan
+ * @property Subscription $subscription
  *
  * @package App\Models
  */
@@ -38,7 +38,7 @@ class Payment extends Model
 
 	protected $casts = [
 		'account_id' => 'int',
-		'plan_id' => 'int',
+		'subscription_id' => 'int',
 		'amount' => 'float',
 		'gateway_response' => 'json',
 		'paid_at' => 'datetime'
@@ -46,8 +46,8 @@ class Payment extends Model
 
 	protected $fillable = [
 		'account_id',
-		'plan_id',
-		'gateway_reference',
+		'subscription_id',
+		'external_payment_id',
 		'status',
 		'amount',
 		'payment_method',
@@ -60,8 +60,8 @@ class Payment extends Model
 		return $this->belongsTo(Account::class);
 	}
 
-	public function plan(): BelongsTo
+	public function subscription(): BelongsTo
 	{
-		return $this->belongsTo(Plan::class);
+		return $this->belongsTo(Subscription::class);
 	}
 }

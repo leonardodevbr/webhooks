@@ -18,6 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * 
  * @property int $id
  * @property int $plan_id
+ * @property int $account_id
  * @property string|null $external_subscription_id
  * @property Carbon $started_at
  * @property Carbon|null $expires_at
@@ -25,8 +26,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * 
+ * @property Account $account
  * @property Plan $plan
- * @property Collection|Account[] $accounts
+ * @property Collection|Payment[] $payments
  * @property Collection|WebhookRetransmissionUrl[] $webhook_retransmission_urls
  * @property Collection|Webhook[] $webhooks
  *
@@ -39,6 +41,7 @@ class Subscription extends Model
 
 	protected $casts = [
 		'plan_id' => 'int',
+		'account_id' => 'int',
 		'started_at' => 'datetime',
 		'expires_at' => 'datetime',
 		'is_active' => 'bool'
@@ -46,20 +49,26 @@ class Subscription extends Model
 
 	protected $fillable = [
 		'plan_id',
+		'account_id',
 		'external_subscription_id',
 		'started_at',
 		'expires_at',
 		'is_active'
 	];
 
+	public function account(): BelongsTo
+	{
+		return $this->belongsTo(Account::class);
+	}
+
 	public function plan(): BelongsTo
 	{
 		return $this->belongsTo(Plan::class);
 	}
 
-	public function accounts(): HasMany
+	public function payments(): HasMany
 	{
-		return $this->hasMany(Account::class);
+		return $this->hasMany(Payment::class);
 	}
 
 	public function webhook_retransmission_urls(): HasMany

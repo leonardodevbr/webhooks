@@ -2,139 +2,271 @@
 
 namespace App\Http\Controllers;
 
-use App\Interfaces\IPaymentService;
 use App\Models\Payment;
 use App\Models\Subscription;
+use App\Services\EfiPayService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
 class EfiPayWebhookController extends Controller
 {
-    protected IPaymentService $paymentService;
+    protected EfiPayService $paymentService;
 
-    public function __construct(IPaymentService $paymentService)
+    public function __construct(EfiPayService $paymentService)
     {
         $this->paymentService = $paymentService;
     }
 
-    /**
-     * Processa o webhook recebido da Efí Pay
-     */
     public function handle(Request $request)
     {
         $notificationToken = $request->input('notification');
-        Log::info('Token de notificação recebido da Efí Pay', ['token' => $notificationToken]);
 
         if (!$notificationToken) {
-            return response()->json(['error' => 'Token de notificação não encontrado'], 400);
+            Log::error("Token de notificação ausente", ['request' => $request->all()]);
+            return response()->json(['error' => 'Token de notificação ausente'], 400);
         }
 
-        // Obtém os detalhes da notificação usando o serviço
-        try {
-            $notificationData = $this->paymentService->getNotificationDetails($notificationToken);
-        } catch (\Exception $e) {
-            Log::error('Erro ao consultar detalhes da notificação: ' . $e->getMessage());
-            return response()->json(['error' => 'Erro ao consultar detalhes da notificação'], 500);
-        }
+        Log::info("Token de notificação recebido da Efí Pay", ['token' => $notificationToken]);
 
-        // Separa os dados importantes
-        $status = $notificationData['status'] ?? null;
-        $subscriptionId = $notificationData['subscription_id'] ?? null;
+        // Buscar detalhes da notificação via API da Efí Pay
+//        $notificationData = $this->paymentService->getNotificationDetails($notificationToken);
 
-        if (!$status || !$subscriptionId) {
-            Log::error('Dados da notificação incompletos', ['notification' => $notificationData]);
+$notificationData = json_decode('{
+  "code": 200,
+  "data": [
+    {
+      "id": 1,
+      "type": "subscription",
+      "custom_id": "2",
+      "status": {
+        "current": "new",
+        "previous": null
+      },
+      "identifiers": {
+        "subscription_id": 95034
+      },
+      "created_at": "2025-02-11 12:02:55"
+    },
+    {
+      "id": 2,
+      "type": "subscription",
+      "custom_id": "2",
+      "status": {
+        "current": "new_charge",
+        "previous": "new"
+      },
+      "identifiers": {
+        "subscription_id": 95034
+      },
+      "created_at": "2025-02-11 12:02:55"
+    },
+    {
+      "id": 3,
+      "type": "subscription_charge",
+      "custom_id": "2",
+      "status": {
+        "current": "new",
+        "previous": null
+      },
+      "identifiers": {
+        "subscription_id": 95034,
+        "charge_id": 44478425
+      },
+      "created_at": "2025-02-11 12:02:55"
+    },
+    {
+      "id": 4,
+      "type": "subscription_charge",
+      "custom_id": "2",
+      "status": {
+        "current": "waiting",
+        "previous": "new"
+      },
+      "identifiers": {
+        "subscription_id": 95034,
+        "charge_id": 44478425
+      },
+      "created_at": "2025-02-11 12:02:55"
+    },
+    {
+      "id": 5,
+      "type": "subscription",
+      "custom_id": "2",
+      "status": {
+        "current": "active",
+        "previous": "new_charge"
+      },
+      "identifiers": {
+        "subscription_id": 95034
+      },
+      "created_at": "2025-02-11 12:02:56"
+    },
+    {
+      "id": 6,
+      "type": "subscription_charge",
+      "custom_id": "2",
+      "status": {
+        "current": "approved",
+        "previous": "waiting"
+      },
+      "identifiers": {
+        "subscription_id": 95034,
+        "charge_id": 44478425
+      },
+      "created_at": "2025-02-11 14:53:48"
+    },
+    {
+      "id": 7,
+      "type": "subscription_charge",
+      "custom_id": "2",
+      "status": {
+        "current": "paid",
+        "previous": "approved"
+      },
+      "identifiers": {
+        "subscription_id": 95034,
+        "charge_id": 44478425
+      },
+      "created_at": "2025-02-11 14:54:18",
+      "value": 1999
+    }
+  ]
+}
+', true);
+
+        if (!$notificationData || empty($notificationData['data'])) {
+            Log::error("Dados da notificação incompletos", ['notification' => $notificationData]);
             return response()->json(['error' => 'Dados da notificação incompletos'], 400);
         }
 
-        // Processa conforme o status
-        switch ($status) {
-            case 'paid':
-                return $this->handlePaymentSuccess($subscriptionId, $notificationData);
-            case 'unpaid':
-            case 'expired':
-                return $this->handlePaymentFailure($subscriptionId, $notificationData);
-            case 'canceled':
-                return $this->handleSubscriptionCanceled($subscriptionId);
-            default:
-                Log::warning('Status da notificação não tratado', ['status' => $status]);
-                return response()->json(['status' => 'status não tratado']);
-        }
+        // Pegar o último evento da lista
+        $lastEvent = end($notificationData['data']);
+
+        return $this->processEvent($lastEvent);
     }
 
-    /**
-     * Trata pagamentos bem-sucedidos.
-     */
-    private function handlePaymentSuccess($subscriptionId, $notificationData)
+    private function processEvent($event)
     {
+        $type = $event['type'];
+        $status = $event['status']['current'] ?? null;
+        $subscriptionId = $event['identifiers']['subscription_id'] ?? null;
+        $chargeId = $event['identifiers']['charge_id'] ?? null;
+
+        if (!$subscriptionId || !$status) {
+            Log::warning("Evento ignorado por falta de informações", ['event' => $event]);
+            return response()->json(['error' => 'Evento inválido'], 400);
+        }
+
+        Log::info("Processando evento da Efí Pay", [
+            'type' => $type,
+            'status' => $status,
+            'subscription_id' => $subscriptionId,
+            'charge_id' => $chargeId ?? 'N/A'
+        ]);
+
         $subscription = Subscription::where('external_subscription_id', $subscriptionId)->first();
 
         if (!$subscription) {
-            Log::error("Assinatura não encontrada: " . $subscriptionId);
+            Log::error("Assinatura não encontrada", ['subscription_id' => $subscriptionId]);
             return response()->json(['error' => 'Assinatura não encontrada'], 404);
         }
 
-        $subscription->update([
-            'is_active' => true,
-            'expires_at' => now()->addMonth(),
-        ]);
-
-        Payment::create([
-            'account_id' => $subscription->accounts->first()->id,
-            'plan_id' => $subscription->plan_id,
-            'gateway_reference' => $notificationData['charge_id'],
-            'status' => 'paid',
-            'amount' => $notificationData['amount'] / 100,
-            'payment_method' => $notificationData['payment_method'],
-            'paid_at' => now()
-        ]);
-
-        Log::info("Assinatura ativada", ['subscription_id' => $subscription->id]);
-        return response()->json(['status' => 'assinatura ativada']);
+        // Diferenciar eventos de assinatura e cobrança
+        return match ($type) {
+            'subscription' => $this->handleSubscriptionEvent($subscription, $status),
+            'subscription_charge' => $this->handleChargeEvent($subscription, $chargeId, $status),
+            default => $this->handleUnknownEvent($type),
+        };
     }
 
-    /**
-     * Trata falhas no pagamento ou expiração.
-     */
-    private function handlePaymentFailure($subscriptionId, $notificationData)
+    private function handleSubscriptionEvent($subscription, $status)
     {
-        $subscription = Subscription::where('external_subscription_id', $subscriptionId)->first();
+        match ($status) {
+            'active' => $subscription->update(['is_active' => true]),
+            'canceled' => $subscription->update(['is_active' => false]),
+            default => Log::warning("Status de assinatura não tratado", ['status' => $status])
+        };
 
-        if (!$subscription) {
-            Log::error("Assinatura não encontrada: " . $subscriptionId);
-            return response()->json(['error' => 'Assinatura não encontrada'], 404);
-        }
-
-        $subscription->update([
-            'is_active' => false,
-            'expires_at' => now()
+        Log::info("Status de assinatura atualizado", [
+            'subscription_id' => $subscription->id,
+            'status' => $status
         ]);
 
-        Payment::where('gateway_reference', $notificationData['charge_id'])->update([
-            'status' => 'failed'
-        ]);
-
-        Log::warning("Assinatura desativada por falta de pagamento", ['subscription_id' => $subscription->id]);
-        return response()->json(['status' => 'assinatura desativada']);
+        return response()->json(['status' => 'assinatura atualizada']);
     }
 
-    /**
-     * Trata assinaturas canceladas.
-     */
-    private function handleSubscriptionCanceled($subscriptionId)
+    private function handleChargeEvent($subscription, $chargeId, $status)
     {
-        $subscription = Subscription::where('external_subscription_id', $subscriptionId)->first();
-
-        if (!$subscription) {
-            Log::error("Assinatura não encontrada: " . $subscriptionId);
-            return response()->json(['error' => 'Assinatura não encontrada'], 404);
+        if (!$chargeId) {
+            Log::warning("Evento de cobrança sem charge_id", ['subscription_id' => $subscription->id]);
+            return response()->json(['error' => 'Evento de cobrança inválido'], 400);
         }
 
-        $subscription->update([
-            'is_active' => false,
-            'expires_at' => now()
-        ]);
+        match ($status) {
+            'waiting' => Log::info("Pagamento pendente", ['charge_id' => $chargeId]),
+            'paid' => $this->handlePaymentSuccess($subscription, $chargeId),
+            'unpaid', 'expired', 'canceled' => $this->handlePaymentFailure($subscription, $chargeId),
+            default => Log::warning("Status de cobrança não tratado", ['status' => $status])
+        };
 
-        Log::info("Assinatura cancelada", ['subscription_id' => $subscription->id]);
-        return response()->json(['status' => 'assinatura cancelada']);
+        return response()->json(['status' => 'evento de cobrança atualizado']);
+    }
+
+    private function handlePaymentSuccess($subscription, $chargeId)
+    {
+        $externalPayment = $this->paymentService->getPayment($chargeId);
+
+        if (!$externalPayment || !isset($externalPayment['data']['status'])) {
+            Log::error("Falha ao buscar detalhes do pagamento", ['charge_id' => $chargeId]);
+            return response()->json(['error' => 'Erro ao buscar detalhes do pagamento'], 500);
+        }
+
+        Payment::updateOrCreate(
+            ['external_payment_id' => $chargeId],
+            [
+                'account_id' => $subscription->account_id,
+                'subscription_id' => $subscription->id,
+                'status' => $externalPayment['data']['status'],
+                'amount' => ($externalPayment['data']['total'] ?? 0) / 100,
+                'payment_method' => $externalPayment['data']['payment']['method'] ?? 'desconhecido',
+                'gateway_response' => json_encode($externalPayment),
+                'paid_at' => $externalPayment['data']['status'] === 'paid' ? $externalPayment['data']['payment']['created_at'] ?? now() : null
+            ]
+        );
+
+        Log::info("Pagamento confirmado", ['subscription_id' => $subscription->id, 'charge_id' => $chargeId]);
+        return response()->json(['status' => 'pagamento confirmado']);
+    }
+
+    private function handlePaymentFailure($subscription, $chargeId)
+    {
+        $externalPayment = $this->paymentService->getPayment($chargeId);
+
+        if (!$externalPayment || !isset($externalPayment['data']['status'])) {
+            Log::error("Falha ao buscar detalhes do pagamento", ['charge_id' => $chargeId]);
+            return response()->json(['error' => 'Erro ao buscar detalhes do pagamento'], 500);
+        }
+
+        Payment::updateOrCreate(
+            ['external_payment_id' => $chargeId],
+            [
+                'account_id' => $subscription->account_id,
+                'subscription_id' => $subscription->id,
+                'status' => $externalPayment['data']['status'],
+                'amount' => ($externalPayment['data']['total'] ?? 0) / 100,
+                'payment_method' => $externalPayment['data']['payment']['method'] ?? 'desconhecido',
+                'gateway_response' => json_encode($externalPayment),
+                'paid_at' => null
+            ]
+        );
+
+        Log::warning("Pagamento falhou", ['subscription_id' => $subscription->id, 'charge_id' => $chargeId]);
+        return response()->json(['status' => 'pagamento falhou']);
+    }
+
+    private function handleUnknownEvent($type)
+    {
+        Log::warning("Tipo de evento desconhecido recebido", ['type' => $type]);
+        return response()->json(['status' => 'evento ignorado']);
     }
 }
