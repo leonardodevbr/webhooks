@@ -360,7 +360,8 @@
                                         @foreach($savedCards as $card)
                                             <div class="col-md-6">
                                                 <div class="card mb-2 flex-row saved-card-option"
-                                                     data-card-id="{{ $card->id }}" data-payment-token="{{$card->payment_token}}">
+                                                     data-card-id="{{ $card->id }}"
+                                                     data-payment-token="{{$card->payment_token}}">
                                                     <div class="card-body">
                                                         <span class="card-info">{{ $card->card_mask }}</span>
                                                     </div>
@@ -553,6 +554,7 @@
         });
 
         /** ⬇️ Validação do Cartão */
+
         function validateCreditCardForm() {
             if (selectedPaymentMethod !== 'credit_card') return;
 
