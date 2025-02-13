@@ -556,7 +556,7 @@
         function validateCreditCardForm() {
             if (selectedPaymentMethod !== 'credit_card') return;
 
-            const selectedCard = document.querySelector('.card-type-option.selected').dataset.type;
+            const selectedCard = document.querySelector('.card-type-option.selected')?.dataset.type;
 
             if (selectedCard === 'saved') {
                 validateSavedCardSelection();
