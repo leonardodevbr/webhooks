@@ -17,6 +17,7 @@
     <link rel="stylesheet" href="/css/card-brand.css">
     <!-- CSRF Token -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
 <nav class="navbar navbar-light bg-dark px-3">
@@ -44,7 +45,7 @@
         @endif
     </div>
 </nav>
-<div class="container mt-4">
+<div class="container pt-4">
     <h3 class="mb-3">Meu Perfil</h3>
 
     <!-- Exibe mensagens de sucesso ou erro -->
@@ -164,7 +165,7 @@
             </form>
         </div>
 
-        <!-- Aba: Assinatura -->
+        <!-- Substituir a seção de assinatura existente por este código -->
         <div class="tab-pane fade pb-5" id="subscription">
             @if($subscription)
                 <!-- Assinatura ativa -->
@@ -173,14 +174,7 @@
                 <p><strong>Valor:</strong>
                     R$ {{ number_format($subscription->plan->price, 2, ',', '.') }}
                     /{{ ucfirst($subscription->plan->billing_cycle) }}</p>
-                <p><strong>Status:</strong> Ativo</p>
-
-                <form action="{{ route('subscription.cancel',['subscription_id' => $subscription->id]) }}" method="POST"
-                      class="mt-3">
-                    @csrf
-                    @method('DELETE')
-                    <button type="submit" class="btn btn-danger">Cancelar Assinatura</button>
-                </form>
+                <p><strong>Status:</strong> {{$subscription->is_active ? "Ativa" : "Pendente"}}</p>
 
                 <h5 class="mt-4">Histórico de Pagamentos</h5>
                 <div class="table-responsive">
@@ -225,13 +219,21 @@
                         </tbody>
                     </table>
                 </div>
+
+                <form action="{{ route('subscription.cancel',['subscription_id' => $subscription->id]) }}" method="POST"
+                      class="text-right">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn btn-danger">Cancelar Assinatura</button>
+                </form>
             @elseif($pendingPayment)
                 <div class="row">
                     <div class="col-md-6">
                         <h6>💳 Pague via Boleto</h6>
                         <p><strong>Vencimento:</strong> {{ $pendingPayment->details['expire_at'] }}</p>
                         <p><strong>Código de Barras:</strong> <br>
-                            <span style="font-size: 18px; font-family: monospace;">{{ $pendingPayment->details['barcode'] }}</span>
+                            <span
+                                style="font-size: 18px; font-family: monospace;">{{ $pendingPayment->details['barcode'] }}</span>
                         </p>
                         <a href="{{ $pendingPayment->details['billet_link'] }}" class="btn btn-primary" target="_blank">
                             🔗 Visualizar Boleto
@@ -244,7 +246,8 @@
                     <div class="col-md-6">
                         <h6>🔗 Pague via PIX</h6>
                         <p><strong>Escaneie o QR Code:</strong></p>
-                        <img src="{{ $pendingPayment->details['pix']['qrcode_image'] }}" alt="QR Code PIX" class="img-fluid" width="250">
+                        <img src="{{ $pendingPayment->details['pix']['qrcode_image'] }}" alt="QR Code PIX"
+                             class="img-fluid" width="250">
                         <p><strong>Código PIX:</strong></p>
                         <textarea class="form-control" rows="2" onclick="this.select(); document.execCommand('copy');">
                 {{ $pendingPayment->details['pix']['qrcode'] }}
@@ -254,147 +257,176 @@
                 </div>
             @else
                 <div>
-                    <div id="payment-container">
-                        <!-- Sem assinatura, exibir planos -->
-                        <h5>Escolha um Plano</h5>
-                        <div class="table-responsive">
-                            <table class="table table-bordered">
-                                <thead>
-                                <tr>
-                                    <th>Plano</th>
-                                    <th>Preço</th>
-                                    <th>URLs</th>
-                                    <th>Webhooks por URL</th>
-                                    <th>Retransmissões</th>
-                                    <th>Notificações</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                @foreach($plans as $plan)
-                                    <tr>
-                                        <td>{{ $plan->name }}</td>
-                                        <td>R$ {{ number_format($plan->price, 2, ',', '.') }}
-                                            /{{ ucfirst($plan->billing_cycle) }}</td>
-                                        <td>{{ $plan->max_urls }}</td>
-                                        <td>{{ $plan->max_webhooks_per_url }}</td>
-                                        <td>{{ $plan->max_retransmission_urls }}</td>
-                                        <td>{{ $plan->real_time_notifications ? 'Sim' : 'Não' }}</td>
-                                    </tr>
-                                @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-                        <form action="{{ route('subscription.subscribe') }}" id="form_subscribe" method="POST">
-                            <div class="form-group">
-                                <label for="plan">Selecione um Plano</label>
-                                <select class="form-control" id="plan" name="plan_id" required>
-                                    @foreach($plans as $plan)
-                                        <option value="{{ $plan->id }}">{{ $plan->name }} -
-                                            R$ {{ number_format($plan->price, 2, ',', '.') }}</option>
-                                    @endforeach
-                                </select>
-                            </div>
-
-                            <div class="form-group">
-                                <label>Forma de Pagamento</label>
-                                <select class="form-control" id="payment_method" name="payment_method" required>
-                                    <option value="banking_billet">Boleto Bancário</option>
-                                    <option value="credit_card">Cartão de Crédito</option>
-                                </select>
-                            </div>
-
-                            <!-- Seção de Cartões -->
-                            <div id="card_section" style="display: none;">
-                                <h5 class="mt-3">Escolha um Cartão</h5>
-
-                                <div class="form-group">
-                                    <div class="custom-control custom-radio">
-                                        <input type="radio" id="new_card" name="card_option"
-                                               class="custom-control-input" value="new" checked>
-                                        <label class="custom-control-label" for="new_card">Novo Cartão</label>
+                    <form id="subscription-form">
+                        @csrf
+                        <!-- Seção de Planos -->
+                        <div id="plans-section">
+                            <h5 class="text-center fw-bold fs-4 mb-4">Escolha um Plano</h5>
+                            <div class="row row-cols-1 row-cols-md-3 g-4">
+                                @foreach($plans as $index => $plan)
+                                    <div class="col">
+                                        <div class="card shadow-sm text-center h-100 plan-card">
+                                            <div class="card-header bg-transparent border-bottom fw-bold">
+                                                <h5 class="mb-1">{{ $plan->name }}</h5>
+                                                <p class="small text-muted mb-0">{{ $plan->description ?? '' }}</p>
+                                            </div>
+                                            <div class="card-body">
+                                                <h4 class="fw-bold text-dark">
+                                                    R$ {{ number_format($plan->price, 2, ',', '.') }}
+                                                </h4>
+                                                <p class="text-muted small">
+                                                    por {{ $plan->billing_cycle == 'monthly' ? 'mês' : 'ano' }}
+                                                </p>
+                                                <hr>
+                                                <ul class="text-left list-unstyled">
+                                                    @foreach($plan->plan_limits as $limit)
+                                                        <li class="mb-2 {{ $limit->available ? '' : 'text-muted' }}">
+                                                            <i class="fas {{ $limit->available ? 'fa-check text-success' : 'fa-times text-danger' }} mr-2"></i>
+                                                            {{ ucfirst(str_replace('_', ' ', $limit->resource)) }}
+                                                            @if($limit->available && $limit->limit_value)
+                                                                : {{ $limit->limit_value }}
+                                                            @endif
+                                                        </li>
+                                                    @endforeach
+                                                </ul>
+                                            </div>
+                                            <div class="card-footer bg-transparent border-top-0">
+                                                <button type="button" class="btn btn-primary w-100 select-plan-btn"
+                                                        data-plan-id="{{ $plan->id }}">
+                                                    Escolher {{ $plan->name }}
+                                                </button>
+                                            </div>
+                                        </div>
                                     </div>
+                                @endforeach
+                            </div>
+                        </div>
 
-                                    @if(!empty($savedCards))
-                                        <div class="custom-control custom-radio">
-                                            <input type="radio" id="saved_card" name="card_option"
-                                                   class="custom-control-input" value="saved">
-                                            <label class="custom-control-label" for="saved_card">Cartão Salvo</label>
+                        <!-- Seção de Método de Pagamento (inicialmente oculta) -->
+                        <div id="payment-method-section" class="mt-4" style="display: none;">
+                            <h5 class="mb-3">Escolha a forma de pagamento</h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="card payment-method-card" data-method="credit_card">
+                                        <div class="card-body">
+                                            <h6><i class="fas fa-credit-card mr-2"></i>Cartão de Crédito</h6>
+                                            <small class="text-muted">Pagamento processado imediatamente</small>
                                         </div>
-
-                                        <!-- Lista de cartões salvos -->
-                                        <div id="saved_cards_section" class="mt-2" style="display: none;">
-                                            @foreach($savedCards as $card)
-                                                <div class="custom-control custom-radio">
-                                                    <input type="radio" id="card_{{ $loop->index }}"
-                                                           name="saved_card_token"
-                                                           class="custom-control-input"
-                                                           value="{{ $card->payment_token }}">
-                                                    <label class="custom-control-label" for="card_{{ $loop->index }}">
-                                                        {{ $card->card_mask }} - {{ ucfirst($card->card_brand) }}
-                                                    </label>
-                                                </div>
-                                            @endforeach
-                                        </div>
-                                    @endif
+                                    </div>
                                 </div>
+                                <div class="col-md-6">
+                                    <div class="card payment-method-card" data-method="banking_billet">
+                                        <div class="card-body">
+                                            <h6><i class="fas fa-qrcode mr-2"></i>Pix ou Boleto Bancário</h6>
+                                            <small class="text-muted">Vencimento em 3 dias úteis</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
-                                <!-- Campos do Novo Cartão -->
-                                <div id="new_card_fields">
-                                    <div class="form-group">
-                                        <label for="card_number">Número do Cartão <span
-                                                id="card_brand_info"></span></label>
-                                        <div class="input-group">
-                                            <input type="text" class="form-control" id="card_number" name="card_number"
-                                                   maxlength="19">
-                                            <div id="card_brand_div" class="input-group-append d-none">
-                                                <div class="input-group-text brand-append">
-                                                    <span id="card_brand_icon" class="card-brand"></span>
+                        <!-- Seção de Cartão de Crédito (inicialmente oculta) -->
+                        <div id="credit-card-section" class="mt-4" style="display: none;">
+                            <h5 class="mb-3">Dados do Cartão</h5>
+
+                            @if(!$savedCards->isEmpty())
+                                <div id="card-type-section" class="mb-4">
+                                    <h6 class="mb-3">Escolha uma opção</h6>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="card card-type-option selected" data-type="saved">
+                                                <div class="card-body">
+                                                    <h6><i class="fas fa-credit-card mr-2"></i>Usar Cartão Salvo</h6>
+                                                    <small class="text-muted">Escolher um cartão já cadastrado</small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <div class="card card-type-option" data-type="new">
+                                                <div class="card-body">
+                                                    <h6><i class="fas fa-plus-circle mr-2"></i>Novo Cartão</h6>
+                                                    <small class="text-muted">Adicionar um novo cartão de
+                                                        crédito</small>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
+                                </div>
 
-                                    <div class="form-group">
-                                        <label for="card_holder">Nome no Cartão</label>
+                                <!-- Cartões Salvos -->
+                                <div id="saved-cards-container" class="mb-4">
+                                    <h6 class="mb-3">Selecione o cartão</h6>
+                                    <div class="row">
+                                        @foreach($savedCards as $card)
+                                            <div class="col-md-6">
+                                                <div class="card mb-2 flex-row saved-card-option"
+                                                     data-card-id="{{ $card->id }}" data-payment-token="{{$card->payment_token}}">
+                                                    <div class="card-body">
+                                                        <span class="card-info">{{ $card->card_mask }}</span>
+                                                    </div>
+                                                    <div
+                                                        class="card-footer d-flex align-content-center align-items-center border-0">
+                                                        <span class="card-brand {{$card->card_brand}}"></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
+
+                            <!-- Novo Cartão -->
+                            <div id="new-card-container" class="mb-4 {{!$savedCards->isEmpty() ? 'd-none' :  ''}}">
+                                <div class="row">
+                                    <div class="col-md-12 mb-3">
+                                        <div class="form-group">
+                                            <label for="card_number">Número do Cartão <span id="card_brand_info"></span></label>
+                                            <div class="input-group">
+                                                <input type="text" class="form-control" id="card_number"
+                                                       name="card_number" maxlength="19"
+                                                       data-mask="0000 0000 0000 0000">
+                                                <div id="card_brand_div" class="input-group-append d-none">
+                                                    <div class="input-group-text brand-append">
+                                                        <span id="card_brand_icon" class="card-brand"></span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label for="card_holder" class="form-label">Nome no Cartão</label>
                                         <input type="text" class="form-control" id="card_holder" name="card_holder">
                                     </div>
-
-                                    <div class="row">
-                                        <div class="col-md-4">
-                                            <div class="form-group">
-                                                <label for="expiration">Validade (MM/AA)</label>
-                                                <input type="text" class="form-control" id="expiration"
-                                                       data-mask="##/##" maxlength="5" name="expiration">
-                                            </div>
-                                        </div>
-                                        <div class="col-md-3">
-                                            <div class="form-group">
-                                                <label for="cvv">CVV</label>
-                                                <input type="text" class="form-control" id="cvv" name="cvv"
-                                                       maxlength="4">
-                                            </div>
-                                        </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label for="expiry" class="form-label">Validade</label>
+                                        <input type="text" class="form-control" id="expiry" name="expiry" maxlength="7"
+                                               data-mask="00/0000">
                                     </div>
-
-                                    <!-- Campos ocultos para o token gerado -->
-                                    <input type="hidden" id="payment_token" name="payment_token">
-                                    <input type="hidden" id="card_mask" name="card_mask">
-                                    <input type="hidden" id="card_brand" name="card_brand">
-
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="save_card" name="save_card">
-                                        <label class="form-check-label" for="save_card">Salvar cartão para futuras
-                                            transações</label>
+                                    <div class="col-md-3 mb-3">
+                                        <label for="cvv" class="form-label">CVV</label>
+                                        <input type="text" class="form-control" id="cvv" name="cvv" maxlength="4"
+                                               data-mask="0000">
                                     </div>
                                 </div>
+                                <div class="form-check mb-3">
+                                    <input class="form-check-input" type="checkbox" id="save_card" name="save_card">
+                                    <label class="form-check-label" for="save_card">Salvar cartão para futuras
+                                        compras</label>
+                                </div>
                             </div>
+                        </div>
 
-                            <button type="submit" class="btn btn-primary mt-3">Confirmar Assinatura</button>
-                        </form>
-                    </div>
-                    <div id="payment-result"></div>
+                        <input type="hidden" id="selected_plan" name="plan_id">
+
+                        <button type="submit" class="btn btn-primary mt-4" id="confirm-subscription" disabled>Confirmar
+                            Assinatura
+                        </button>
+                    </form>
+
+                    <div id="payment-response" class="mt-4"></div>
                 </div>
-
             @endif
         </div>
     </div>
@@ -407,198 +439,350 @@
 <script src="https://cdn.jsdelivr.net/gh/efipay/js-payment-token-efi/dist/payment-token-efi-umd.min.js"></script>
 
 <script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const paymentMethod = document.getElementById("payment_method");
-        const cardSection = document.getElementById("card_section");
-        const newCardFields = document.getElementById("new_card_fields");
-        const savedCardsSection = document.getElementById("saved_cards_section");
+    document.addEventListener('DOMContentLoaded', function () {
+        const subscriptionTab = document.getElementById('subscription-tab');
+        const userForm = document.querySelector('#user form');
+        const requiredFields = userForm.querySelectorAll('[required]');
+        const subscriptionForm = document.getElementById('subscription-form');
+        const confirmButton = document.getElementById('confirm-subscription');
+        const selectedPlanInput = document.getElementById('selected_plan');
+        const paymentMethodSection = document.getElementById('payment-method-section');
+        const creditCardSection = document.getElementById('credit-card-section');
+        const savedCardsContainer = document.getElementById('saved-cards-container');
+        const newCardContainer = document.getElementById('new-card-container');
 
-        const newCardRadio = document.getElementById("new_card");
-        const savedCardRadio = document.getElementById("saved_card");
+        let selectedCard = null;
 
-        const cardNumberInput = document.getElementById("card_number");
-        const cardBrandInput = document.getElementById("card_brand");
-        const cardBrandInfo = document.getElementById("card_brand_info");
-        const cardBrandDiv = document.getElementById("card_brand_div");
-        const cardBrandIcon = document.getElementById("card_brand_icon");
+        function checkUserFormCompletion() {
+            const isComplete = Array.from(requiredFields).every(field => field.value.trim() !== '');
+            subscriptionTab.classList.toggle('disabled', !isComplete);
+        }
 
-        // Seção para exibir boleto e PIX dinamicamente
-        const paymentContainerSection = document.getElementById("payment-container");
-        const paymentResultSection = document.getElementById("payment-result");
+        userForm?.addEventListener('input', checkUserFormCompletion);
+        checkUserFormCompletion(); // Verifica o estado inicial ao carregar a página
 
-        // 🔹 Detecção da bandeira do cartão ao digitar os primeiros 4 números
-        cardNumberInput.addEventListener("input", async function () {
-            const cardNumber = this.value.replace(/\D/g, ""); // Remove caracteres não numéricos
+        subscriptionTab?.addEventListener('click', function (event) {
+            if (this.classList.contains('disabled')) {
+                event.preventDefault();
+                alert('Por favor, preencha todos os campos na aba "Dados do Usuário" antes de acessar a aba "Assinatura".');
+            }
+        });
 
-            if (cardNumber.length >= 4) {
+        let selectedPaymentMethod = null;
+
+        // Desativa o botão no início
+        confirmButton?.setAttribute('disabled', 'true');
+
+        /** ⬇️ Seleção de Plano */
+        document.querySelectorAll('.select-plan-btn').forEach(button => {
+            button?.addEventListener('click', function () {
+                document.querySelectorAll('.select-plan-btn').forEach(btn => {
+                    btn.closest('.card').classList.remove('selected');
+                });
+
+                this.closest('.card').classList.add('selected');
+                selectedPlanInput.value = this.dataset.planId;
+
+                paymentMethodSection.style.display = 'block';
+                creditCardSection.style.display = 'none';
+                selectedPaymentMethod = null;
+                confirmButton?.setAttribute('disabled', 'true');
+
+                paymentMethodSection.scrollIntoView({behavior: 'smooth'});
+            });
+        });
+
+        /** ⬇️ Seleção de Método de Pagamento */
+        document.querySelectorAll('.payment-method-card').forEach(card => {
+            card?.addEventListener('click', function () {
+                document.querySelectorAll('.payment-method-card').forEach(c => {
+                    c.classList.remove('selected');
+                });
+
+                this.classList.add('selected');
+                selectedPaymentMethod = this.dataset.method;
+
+                if (selectedPaymentMethod === 'credit_card') {
+                    creditCardSection.style.display = 'block';
+                    confirmButton?.setAttribute('disabled', 'true');
+                    validateCreditCardForm();
+                } else {
+                    creditCardSection.style.display = 'none';
+                    confirmButton?.removeAttribute('disabled');
+                }
+            });
+        });
+
+        /** ⬇️ Seleção entre cartão novo ou existente */
+        document.querySelectorAll('.card-type-option').forEach(cardType => {
+            cardType?.addEventListener('click', function () {
+                document.querySelectorAll('.card-type-option').forEach(c => {
+                    c.classList.remove('selected');
+                });
+
+                this.classList.add('selected');
+                const selectedType = this.dataset.type;
+
+                if (selectedType === 'saved') {
+                    savedCardsContainer?.classList.remove('d-none');
+                    newCardContainer?.classList.add('d-none');
+                    validateSavedCardSelection(); // Chama a validação ao trocar para cartão salvo
+                } else {
+                    savedCardsContainer?.classList.add('d-none');
+                    newCardContainer?.classList.remove('d-none');
+                    selectedCard = null;
+                    document.querySelectorAll('.saved-card-option').forEach(c => {
+                        c.classList.remove('selected');
+                    });
+                    confirmButton?.setAttribute('disabled', 'true'); // Desativa o botão ao trocar para novo cartão
+                }
+            });
+        });
+
+        /** ⬇️ Seleção de cartão existente */
+        document.querySelectorAll('.saved-card-option').forEach(card => {
+            card?.addEventListener('click', function () {
+                document.querySelectorAll('.saved-card-option').forEach(c => {
+                    c.classList.remove('selected');
+                });
+
+                this.classList.add('selected');
+                selectedCard = this.dataset.cardId;
+                validateSavedCardSelection(); // Chama a validação ao selecionar um cartão
+            });
+        });
+
+        /** ⬇️ Validação do Cartão */
+        function validateCreditCardForm() {
+            if (selectedPaymentMethod !== 'credit_card') return;
+
+            const selectedCard = document.querySelector('.card-type-option.selected').dataset.type;
+
+            if (selectedCard === 'saved') {
+                validateSavedCardSelection();
+                return;
+            }
+
+            const cardNumber = document.getElementById('card_number').value.replace(/\D/g, '');
+            const cardHolder = document.getElementById('card_holder').value.trim();
+            const expiry = document.getElementById('expiry').value.replace(/\D/g, '');
+            const cvv = document.getElementById('cvv').value.replace(/\D/g, '');
+
+            const isValid = cardNumber.length >= 13 &&
+                cardHolder.length >= 3 &&
+                expiry.length === 6 &&
+                cvv.length >= 3;
+
+            if (!isValid) {
+                confirmButton?.setAttribute('disabled', 'true');
+            } else {
+                confirmButton?.removeAttribute('disabled');
+            }
+        }
+
+        // Validação de Cartão Salvo
+        function validateSavedCardSelection() {
+            const selectedCard = document.querySelector('.saved-card-option.selected');
+            if (!selectedCard) {
+                confirmButton?.setAttribute('disabled', 'true');
+            } else {
+                confirmButton?.removeAttribute('disabled');
+            }
+        }
+
+        // Monitora mudanças no cartão salvo
+        document.querySelectorAll('[name="saved_card_id"]').forEach(radio => {
+            radio?.addEventListener('change', validateSavedCardSelection);
+        });
+
+        // Monitora mudanças no formulário do cartão
+        ['card_number', 'card_holder', 'expiry', 'cvv'].forEach(id => {
+            document.getElementById(id)?.addEventListener('input', validateCreditCardForm);
+        });
+
+        /** ⬇️ Detecção da Bandeira do Cartão */
+        const cardNumberInput = document.getElementById('card_number');
+        const cardBrandIcon = document.getElementById('card_brand_icon');
+        const cardBrandDiv = document.getElementById('card_brand_div');
+        const cardBrandText = document.getElementById('card_brand_info');
+
+        cardNumberInput?.addEventListener('input', async function () {
+            const cardNumber = this.value.replace(/\D/g, '');
+
+            if (cardNumber.length >= 6) {
                 try {
                     const brand = await EfiPay.CreditCard.setCardNumber(cardNumber).verifyCardBrand();
-                    if (brand === "unsupported" || brand === "undefined") {
-                        cardBrandIcon.className = "card-brand";
-                        cardBrandInfo.innerHTML = " (Bandeira não aceita)";
+
+                    if (brand === 'unsupported' || brand === 'undefined') {
+                        cardBrandText.innerHTML = ' (Bandeira não aceita)';
+                        cardBrandIcon.className = 'card-brand';
+                        cardBrandDiv.classList.add('d-none');
                         return;
                     }
-                    cardBrandInfo.innerHTML = " (" + brand + ")";
-                    cardBrandInput.value = brand;
-                    cardBrandDiv.classList.remove("d-none");
-                    cardBrandIcon.className = "card-brand";
-                    cardBrandIcon.classList.add(brand);
+
+                    cardBrandText.innerHTML = ` (${brand})`;
+                    cardBrandIcon.className = `card-brand ${brand.toLowerCase()}`;
+                    cardBrandDiv.classList.remove('d-none');
                 } catch (error) {
-                    console.error("Erro ao identificar a bandeira:", error);
-                    cardBrandInput.value = "";
-                    cardBrandIcon.className = "card-brand";
-                    cardBrandDiv.classList.add("d-none");
-                    cardBrandInfo.innerHTML = "";
+                    cardBrandText.innerHTML = '';
+                    cardBrandIcon.className = 'card-brand';
+                    cardBrandDiv.classList.add('d-none');
+                    console.error('Erro ao identificar bandeira:', error);
                 }
             } else {
-                cardBrandInput.value = "";
-                cardBrandIcon.className = "card-brand";
-                cardBrandInfo.innerHTML = "";
+                cardBrandText.innerHTML = '';
+                cardBrandIcon.className = 'card-brand';
+                cardBrandDiv.classList.add('d-none');
             }
         });
 
-        // 🔹 Alterna entre Novo Cartão e Cartão Salvo
-        function toggleCardSection() {
-            if (savedCardRadio && savedCardRadio.checked) {
-                newCardFields.style.display = "none";
-                savedCardsSection.style.display = "block";
-            } else {
-                newCardFields.style.display = "block";
-                savedCardsSection.style.display = "none";
-            }
-        }
+        // 🔹 Envio do formulário via AJAX com tokenização correta
+        subscriptionForm?.addEventListener("submit", async function (event) {
+            event.preventDefault(); // Impede o envio até termos o token
+            const overlay = document.createElement('div');
+            overlay.className = 'overlay';
+            overlay.innerHTML = `<div class="spinner-border text-primary" role="status">
+                    <span class="sr-only">Processando...</span>
+                </div>
+            <p>Processando assinatura...</p>`;
+            document.body.appendChild(overlay);
 
-        if (newCardRadio) newCardRadio.addEventListener("change", toggleCardSection);
-        if (savedCardRadio) savedCardRadio.addEventListener("change", toggleCardSection);
-
-        // 🔹 Exibe ou esconde a seção de cartões conforme o método de pagamento
-        if (paymentMethod) {
-            paymentMethod.addEventListener("change", function () {
-                cardSection.style.display = this.value === "credit_card" ? "block" : "none";
-            });
-        }
-
-        // 🔹 Validação automática dos campos obrigatórios
-        const requiredFields = document.querySelectorAll("#user input[required]");
-        const subscriptionTab = document.getElementById("subscription-tab");
-
-        function checkFormCompletion() {
-            let allFilled = true;
-            requiredFields.forEach(input => {
-                if (!input.value.trim()) {
-                    allFilled = false;
-                }
-            });
-
-            subscriptionTab.classList.toggle("disabled", !allFilled);
-        }
-
-        requiredFields.forEach(input => {
-            input.addEventListener("input", checkFormCompletion);
-        });
-
-        checkFormCompletion();
-
-        // 🔹 Envio do formulário via AJAX
-        document.getElementById("form_subscribe").addEventListener("submit", async function (event) {
-            event.preventDefault();
-
-            const formData = new FormData(this);
             const submitButton = this.querySelector("button[type=submit]");
+            let requestData = {
+                plan_id: document.getElementById("selected_plan").value,
+                payment_method: selectedPaymentMethod
+            };
+
             submitButton.disabled = true;
             submitButton.innerText = "Processando...";
 
             try {
+                // 🔹 Se for cartão de crédito e novo cartão, gera token antes de enviar ao backend
+                if (selectedPaymentMethod === 'credit_card') {
+                    let isNewCard = newCardContainer.classList.contains('d-none') === false;
+
+                    if (isNewCard) {
+                        const cardData = {
+                            brand: cardBrandIcon.classList[1], // Bandeira do cartão
+                            number: cardNumberInput.value.replace(/\D/g, ""), // Número do cartão (sem espaços)
+                            expirationMonth: document.getElementById("expiry").value.split("/")[0], // Mês de expiração
+                            expirationYear: "20" + document.getElementById("expiry").value.split("/")[1].slice(-2), // 🔥 Corrigido!
+                            cvv: document.getElementById("cvv").value, // Código de segurança
+                            holderName: document.getElementById("card_holder").value, // Nome do titular
+                            holderDocument: document.getElementById("cpf").value, // CPF do titular
+                            reuse: true // Permite reutilização do cartão salvo
+                        };
+
+                        try {
+                            // 🔹 Gera o token corretamente com a API da EfiPay
+                            const result = await EfiPay.CreditCard
+                                .setAccount("{{env('EFI_PAY_ACCOUNT_ID')}}")
+                                .setEnvironment("{{env('EFI_PAY_ENV', 'sandbox')}}")
+                                .setCreditCardData(cardData)
+                                .getPaymentToken();
+
+                            requestData.payment_token = result.payment_token;
+                            requestData.card_holder = cardData.holderName;
+                            requestData.card_brand = cardData.brand;
+                            requestData.card_mask = result.card_mask;
+                            requestData.save_card = cardData.reuse;
+
+                        } catch (error) {
+                            console.error("Erro ao gerar token do cartão:", error);
+                            alert("Erro ao processar o cartão.");
+                            submitButton.disabled = false;
+                            submitButton.innerText = "Confirmar Assinatura";
+                            return;
+                        }
+                    } else {
+                        // Lógica para cartão existente
+                        const selectedCard = document.querySelector('.saved-card-option.selected');
+                        if (selectedCard) {
+                            requestData.payment_token = selectedCard.dataset.paymentToken;
+                        }
+                    }
+                }
+
+                console.log("JSON Enviado:", requestData);
+
                 const response = await fetch("{{ route('subscription.subscribe') }}", {
                     method: "POST",
                     headers: {
                         "X-CSRF-TOKEN": document.querySelector('meta[name="csrf-token"]').getAttribute("content"),
-                        "Accept": "application/json"
+                        "Accept": "application/json",
+                        "Content-Type": "application/json"
                     },
-                    body: formData
+                    body: JSON.stringify(requestData)
                 });
 
                 const result = await response.json();
-                submitButton.disabled = false;
-                submitButton.innerText = "Confirmar Assinatura";
+                console.log(result);
 
                 if (response.ok) {
-                    paymentContainerSection.classList.add('d-none');
-                    handleSubscriptionSuccess(result);
+                    document.getElementById('payment-response').innerHTML = `
+                <div class="alert alert-success">
+                    ${result.message}
+                    ${result.redirect ? '<br>Redirecionando...' : ''}
+                </div>`;
+
+                    if (result.redirect) {
+                        setTimeout(() => {
+                            window.location.href = result.redirect;
+                        }, 2000);
+                    } else {
+                        setTimeout(() => {
+                            location.reload();
+                        }, 2000);
+                    }
                 } else {
-                    paymentContainerSection.classList.remove('d-none');
-                    alert(result.error || "Ocorreu um erro inesperado.");
+                    document.getElementById('payment-response').innerHTML = `
+                <div class="alert alert-danger">
+                    ${result.error || "Ocorreu um erro inesperado. Por favor, tente novamente mais tarde."}
+                </div>`;
                 }
             } catch (error) {
                 console.error("Erro na requisição:", error);
-                alert("Erro ao processar a assinatura.");
-            }
-        });
-
-        // 🔹 Exibe os dados do Boleto e PIX dinamicamente
-        function handleSubscriptionSuccess(data) {
-            let successMessage = `<div class="alert alert-success"><strong>${data.message}</strong></div>`;
-
-            if (data.payment) {
-                successMessage += `
-                    <div class="row">
-                        <div class="col-md-6">
-                            <h6>💳 Pague via Boleto</h6>
-                            <p><strong>Vencimento:</strong> ${data.payment.expire_at}</p>
-                            <p><strong>Código de Barras:</strong> <br>
-                                <span style="font-size: 18px; font-family: monospace;">${data.payment.barcode}</span>
-                            </p>
-                            <a href="${data.payment.billet_link}" class="btn btn-primary" target="_blank">
-                                🔗 Visualizar Boleto
-                            </a>
-                            <a href="${data.payment.pdf}" class="btn btn-secondary" target="_blank">
-                                📄 Baixar PDF
-                            </a>
-                        </div>
-
-                        <div class="col-md-6">
-                            <h6>🔗 Pague via PIX</h6>
-                            <p><strong>Escaneie o QR Code:</strong></p>
-                            <img src="${data.payment.pix.qrcode_image}" alt="QR Code PIX" class="img-fluid" width="250">
-                            <p><strong>Código PIX:</strong></p>
-                            <textarea class="form-control" rows="2" onclick="this.select(); document.execCommand('copy');">
-                                ${data.payment.pix.qrcode}
-                            </textarea>
-                            <small class="text-muted">Clique para copiar o código</small>
-                        </div>
-                    </div>
-                `;
+                alert("Erro ao processar a assinatura. Por favor, tente novamente mais tarde.");
             }
 
-            paymentResultSection.innerHTML = successMessage;
-        }
-
-        // 🔹 Aplica máscaras automaticamente
-        function applyMask(input, mask) {
-            input.addEventListener("input", () => formatInput(input, mask));
-        }
-
-        document.querySelectorAll("[data-mask]").forEach(input => {
-            applyMask(input, input.getAttribute("data-mask"));
+            document.body.removeChild(overlay);
+            submitButton.disabled = false;
+            submitButton.innerText = "Confirmar Assinatura";
         });
 
-        $(document).ready(function () {
-            $(".datepicker").datepicker({
-                dateFormat: "dd/mm/yy",
-                changeMonth: true,
-                changeYear: true,
-                yearRange: "1900:2025",
-                autoclose: true
+
+        // Máscaras para os inputs
+        function applyInputMask(input, pattern) {
+            input?.addEventListener('input', function () {
+                let value = this.value.replace(/\D/g, '');
+                let maskedValue = '';
+                let index = 0;
+
+                for (let i = 0; i < pattern.length && index < value.length; i++) {
+                    if (pattern[i] === '0') {
+                        maskedValue += value[index];
+                        index++;
+                    } else {
+                        maskedValue += pattern[i];
+                    }
+                }
+
+                this.value = maskedValue;
             });
-        });
-
-        async function logoutAccount() {
-            await fetch("{{ route('logout') }}", {method: "POST"});
-            location.reload();
         }
+
+        const maskConfigs = {
+            'card_number': '0000 0000 0000 0000',
+            'expiry': '00/0000',
+            'cvv': '0000'
+        };
+
+        Object.entries(maskConfigs).forEach(([id, mask]) => {
+            const input = document.getElementById(id);
+            if (input) applyInputMask(input, mask);
+        });
     });
 </script>
-
 
 </body>
 </html>

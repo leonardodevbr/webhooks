@@ -228,20 +228,17 @@ class AccountController extends Controller
             $account = Auth::user();
             $plans = Plan::where('active', true)->get();
             $savedCards = $account->customer_cards()->get();
-            $subscription = $account->subscriptions()->where('is_active', true)->orderByDesc('created_at')->first();
             $payments = [];
             $pendingPayment = null;
 
-            // Busca a última assinatura, independente do status
-            $lastSubscription = $account->subscriptions()->orderByDesc('created_at')->first();
+            $subscription = $account->subscriptions()->where('expires_at','>', now())->orWhere('expires_at', null)->orderByDesc('created_at')->first();
 
             if (!empty($subscription)) {
                 $payments = $subscription->payments()->get();
             }
 
-            // Se houver qualquer assinatura, verificar se existe um pagamento pendente via boleto
-            if (!empty($lastSubscription)) {
-                $pendingPayment = $lastSubscription->payments()
+            if (!empty($subscription)) {
+                $pendingPayment = $subscription->payments()
                     ->where('status', 'waiting')
                     ->where('payment_method', 'banking_billet')
                     ->orderByDesc('created_at')

@@ -4,145 +4,138 @@ namespace App\Http\Controllers;
 
 use App\Interfaces\IPaymentService;
 use App\Models\Plan;
-use App\Services\EfiPayService;
+use App\Models\PlanLimit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
-class PlanController extends Controller
-{
+class PlanController extends Controller {
     protected IPaymentService $paymentService;
-    public function __construct(IPaymentService $paymentService)
-    {
+
+    public function __construct(IPaymentService $paymentService) {
         $this->paymentService = $paymentService;
     }
 
     /**
      * Exibe a lista de planos.
      */
-    public function index()
-    {
-        $plans = Plan::all();
+    public function index() {
+        $plans = Plan::with('limits')->get();
         return view('admin.plans.index', compact('plans'));
     }
 
     /**
      * Mostra o formulário para criação de um novo plano.
      */
-    public function create()
-    {
+    public function create() {
         return view('admin.plans.create');
     }
 
     /**
      * Processa o formulário de criação e armazena um novo plano.
      */
-    public function store(Request $request)
-    {
+    public function store(Request $request) {
         // Validação dos dados enviados
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255|unique:plans,name',
             'slug' => 'required|string|max:255|unique:plans,slug',
+            'description' => 'nullable|string|max:255',
             'price' => 'required|numeric|min:0',
             'billing_cycle' => 'required|in:monthly,yearly',
-            'max_urls' => 'required|integer|min:1',
-            'max_webhooks_per_url' => 'required|integer|min:1',
-            'max_retransmission_urls' => 'required|integer|min:1',
-            'supports_custom_slugs' => 'sometimes|boolean',
-            'real_time_notifications' => 'sometimes|boolean',
+            'limits' => 'required|array', // Limites como array
+            'limits.*.resource' => 'required|string',
+            'limits.*.limit_value' => 'required|integer|min:1'
         ]);
 
         if ($validator->fails()) {
-            return redirect()->back()
-                ->withErrors($validator)
-                ->withInput();
+            return redirect()->back()->withErrors($validator)->withInput();
         }
 
-        // Criação do plano
-        Plan::create($validator->validated());
+        // Criar plano
+        $plan = Plan::create($validator->validated());
 
-        return redirect()->route('plans.index')
-            ->with('success', 'Plano criado com sucesso.');
+        // Criar os limites associados ao plano
+        foreach ($request->limits as $limit) {
+            PlanLimit::create([
+                'plan_id' => $plan->id,
+                'resource' => $limit['resource'],
+                'limit_value' => $limit['limit_value']
+            ]);
+        }
+
+        return redirect()->route('plans.index')->with('success', 'Plano criado com sucesso.');
     }
 
     /**
      * Exibe o formulário para edição de um plano existente.
      */
-    public function edit($id)
-    {
-        $plan = Plan::findOrFail($id);
+    public function edit($id) {
+        $plan = Plan::with('limits')->findOrFail($id);
         return view('admin.plans.edit', compact('plan'));
     }
 
     /**
      * Atualiza os dados do plano.
      */
-    public function update(Request $request, $id)
-    {
+    public function update(Request $request, $id) {
         $plan = Plan::findOrFail($id);
 
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255|unique:plans,name,' . $plan->id,
             'slug' => 'required|string|max:255|unique:plans,slug,' . $plan->id,
+            'description' => 'nullable|string|max:255',
             'price' => 'required|numeric|min:0',
             'billing_cycle' => 'required|in:monthly,yearly',
-            'max_urls' => 'required|integer|min:1',
-            'max_webhooks_per_url' => 'required|integer|min:1',
-            'max_retransmission_urls' => 'required|integer|min:1',
-            'supports_custom_slugs' => 'sometimes|boolean',
-            'real_time_notifications' => 'sometimes|boolean',
+            'limits' => 'required|array',
+            'limits.*.resource' => 'required|string',
+            'limits.*.limit_value' => 'required|integer|min:1'
         ]);
 
         if ($validator->fails()) {
-            return redirect()->back()
-                ->withErrors($validator)
-                ->withInput();
+            return redirect()->back()->withErrors($validator)->withInput();
         }
 
+        // Atualizar plano
         $plan->update($validator->validated());
 
-        if(empty($plan->extenal_plan_id)){
-            $externalPlan = $this->paymentService->createPlan($plan->toArray());
-        }else{
-            $externalPlan = $this->paymentService->updatePlan($plan->toArray());
+        // Atualizar limites
+        $plan->limits()->delete();
+        foreach ($request->limits as $limit) {
+            PlanLimit::create([
+                'plan_id' => $plan->id,
+                'resource' => $limit['resource'],
+                'limit_value' => $limit['limit_value']
+            ]);
         }
 
-        if(!empty($externalPlan['data']['plan_id'])){
-            $plan->update(['external_plan_id' => $externalPlan['data']['plan_id']]);
-        }
-
-        return redirect()->route('plans.index')
-            ->with('success', 'Plano atualizado com sucesso.');
+        return redirect()->route('plans.index')->with('success', 'Plano atualizado com sucesso.');
     }
 
     /**
      * Exclui o plano.
      */
-    public function destroy($id)
-    {
+    public function destroy($id) {
         $plan = Plan::findOrFail($id);
+        $plan->limits()->delete();
         $plan->delete();
 
-        return redirect()->route('plans.index')
-            ->with('success', 'Plano deletado com sucesso.');
+        return redirect()->route('plans.index')->with('success', 'Plano deletado com sucesso.');
     }
 
     /**
      * Sincroniza o plano com a Efí Pay.
      */
-    public function sync($id)
-    {
+    public function sync($id) {
         $plan = Plan::findOrFail($id);
 
         try {
-
-            if(empty($plan->extenal_plan_id)){
+            if (empty($plan->external_plan_id)) {
                 $externalPlan = $this->paymentService->createPlan($plan->toArray());
-            }else{
+            } else {
                 $externalPlan = $this->paymentService->updatePlan($plan->toArray());
             }
 
-            if(!empty($externalPlan['data']['plan_id'])){
+            if (!empty($externalPlan['data']['plan_id'])) {
                 $plan->update(['external_plan_id' => $externalPlan['data']['plan_id']]);
             }
 

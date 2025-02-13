@@ -18,18 +18,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property int $id
  * @property string $name
  * @property string $slug
+ * @property string|null $description
  * @property float $price
  * @property string $billing_cycle
  * @property bool $active
- * @property int $max_urls
- * @property int $max_webhooks_per_url
- * @property int $max_retransmission_urls
  * @property string|null $external_plan_id
- * @property bool $supports_custom_slugs
- * @property bool $real_time_notifications
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * 
+ * @property Collection|PlanLimit[] $plan_limits
  * @property Collection|Subscription[] $subscriptions
  *
  * @package App\Models
@@ -41,27 +38,23 @@ class Plan extends Model
 
 	protected $casts = [
 		'price' => 'float',
-		'active' => 'bool',
-		'max_urls' => 'int',
-		'max_webhooks_per_url' => 'int',
-		'max_retransmission_urls' => 'int',
-		'supports_custom_slugs' => 'bool',
-		'real_time_notifications' => 'bool'
+		'active' => 'bool'
 	];
 
 	protected $fillable = [
 		'name',
 		'slug',
+		'description',
 		'price',
 		'billing_cycle',
 		'active',
-		'max_urls',
-		'max_webhooks_per_url',
-		'max_retransmission_urls',
-		'external_plan_id',
-		'supports_custom_slugs',
-		'real_time_notifications'
+		'external_plan_id'
 	];
+
+	public function plan_limits(): HasMany
+	{
+		return $this->hasMany(PlanLimit::class);
+	}
 
 	public function subscriptions(): HasMany
 	{

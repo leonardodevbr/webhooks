@@ -45,7 +45,7 @@
     </div>
 </nav>
 <div class="container-fluid">
-    <div class="row">
+    <div class="row h-100">
         <div id="sidebar" class="col-12 col-lg-3 col-sm-4">
             <div class="d-flex flex-column justify-content-between">
                 <div class="d-flex justify-content-between">

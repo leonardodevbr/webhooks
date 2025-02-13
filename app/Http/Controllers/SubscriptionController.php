@@ -31,18 +31,18 @@ class SubscriptionController extends Controller
             $paymentToken = null;
 
             if ($paymentMethod == 'credit_card') {
-                $paymentToken = $request->input('saved_card_token') ?: $request->input('payment_token');
+                $paymentToken = $request->input('payment_token');
 
                 if (!$paymentToken) {
-                    return response()->json(['error' => 'Nenhum token de pagamento foi gerado.'], 400);
+                    return response()->json(['error' => 'Nenhum token de pagamento foi fornecido.'], 400);
                 }
 
-                if ($request->has('save_card') && $request->input('save_card') == 'on') {
+                if ($request->has('save_card') && $request->input('save_card')) {
                     CustomerCard::updateOrCreate(
                         ['account_id' => auth()->id(), 'payment_token' => $paymentToken],
                         [
-                            'card_brand' => $request->card_brand,
-                            'card_mask' => $request->card_mask
+                            'card_brand' => $request->input('card_brand'),
+                            'card_mask' => $request->input('card_mask')
                         ]
                     );
                 }
@@ -127,9 +127,9 @@ class SubscriptionController extends Controller
 
             return response()->json($responseData);
         } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Erro ao criar assinatura: '.$e->getMessage());
+            Log::error($e->getMessage());
 
+            DB::rollBack();
             return response()->json(['error' => 'Não foi possível criar a assinatura. Tente novamente mais tarde.'], 500);
         }
     }
@@ -140,7 +140,7 @@ class SubscriptionController extends Controller
         $subscription = Subscription::find($subscriptionId);
 
         if (!$subscription) {
-            return redirect()->back()->with('error', 'Nenhuma assinatura encontrada.');
+            return response()->json(['error' => 'Nenhuma assinatura encontrada.'], 404);
         }
 
         try {
@@ -152,13 +152,13 @@ class SubscriptionController extends Controller
             // Atualizar status da assinatura no banco
             $subscription->update([
                 'is_active' => false,
-                'expires_at' => now(), // Opcional: definir data de expiração como agora
+                'expires_at' => now(),
             ]);
 
-            return redirect()->route('account.profile')->with('success', 'Assinatura cancelada com sucesso.');
+            return response()->json(['message' => 'Assinatura cancelada com sucesso.']);
         } catch (\Exception $e) {
             Log::error('Erro ao cancelar assinatura: '.$e->getMessage());
-            return redirect()->back()->with('error', 'Erro ao cancelar a assinatura.');
+            return response()->json(['error' => 'Erro ao cancelar a assinatura.'], 500);
         }
     }
 }
