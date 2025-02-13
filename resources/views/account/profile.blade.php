@@ -220,7 +220,8 @@
                     </table>
                 </div>
 
-                <form action="{{ route('subscription.cancel',['subscription_id' => $subscription->id]) }}" method="POST" class="text-right">
+                <form action="{{ route('subscription.cancel',['subscription_id' => $subscription->id]) }}" method="POST"
+                      class="text-right">
                     @csrf
                     @method('DELETE')
                     <button type="submit" class="btn btn-danger">Cancelar Assinatura</button>
@@ -231,7 +232,8 @@
                         <h6>💳 Pague via Boleto</h6>
                         <p><strong>Vencimento:</strong> {{ $pendingPayment->details['expire_at'] }}</p>
                         <p><strong>Código de Barras:</strong> <br>
-                            <span style="font-size: 18px; font-family: monospace;">{{ $pendingPayment->details['barcode'] }}</span>
+                            <span
+                                style="font-size: 18px; font-family: monospace;">{{ $pendingPayment->details['barcode'] }}</span>
                         </p>
                         <a href="{{ $pendingPayment->details['billet_link'] }}" class="btn btn-primary" target="_blank">
                             🔗 Visualizar Boleto
@@ -244,7 +246,8 @@
                     <div class="col-md-6">
                         <h6>🔗 Pague via PIX</h6>
                         <p><strong>Escaneie o QR Code:</strong></p>
-                        <img src="{{ $pendingPayment->details['pix']['qrcode_image'] }}" alt="QR Code PIX" class="img-fluid" width="250">
+                        <img src="{{ $pendingPayment->details['pix']['qrcode_image'] }}" alt="QR Code PIX"
+                             class="img-fluid" width="250">
                         <p><strong>Código PIX:</strong></p>
                         <textarea class="form-control" rows="2" onclick="this.select(); document.execCommand('copy');">
                 {{ $pendingPayment->details['pix']['qrcode'] }}
@@ -288,7 +291,8 @@
                                                 </ul>
                                             </div>
                                             <div class="card-footer bg-transparent border-top-0">
-                                                <button type="button" class="btn btn-primary w-100 select-plan-btn" data-plan-id="{{ $plan->id }}">
+                                                <button type="button" class="btn btn-primary w-100 select-plan-btn"
+                                                        data-plan-id="{{ $plan->id }}">
                                                     Escolher {{ $plan->name }}
                                                 </button>
                                             </div>
@@ -341,7 +345,8 @@
                                             <div class="card card-type-option" data-type="new">
                                                 <div class="card-body">
                                                     <h6><i class="fas fa-plus-circle mr-2"></i>Novo Cartão</h6>
-                                                    <small class="text-muted">Adicionar um novo cartão de crédito</small>
+                                                    <small class="text-muted">Adicionar um novo cartão de
+                                                        crédito</small>
                                                 </div>
                                             </div>
                                         </div>
@@ -354,11 +359,13 @@
                                     <div class="row">
                                         @foreach($savedCards as $card)
                                             <div class="col-md-6">
-                                                <div class="card mb-2 flex-row saved-card-option" data-card-id="{{ $card->id }}">
+                                                <div class="card mb-2 flex-row saved-card-option"
+                                                     data-card-id="{{ $card->id }}" data-payment-token="{{$card->payment_token}}">
                                                     <div class="card-body">
                                                         <span class="card-info">{{ $card->card_mask }}</span>
                                                     </div>
-                                                    <div class="card-footer d-flex align-content-center align-items-center border-0">
+                                                    <div
+                                                        class="card-footer d-flex align-content-center align-items-center border-0">
                                                         <span class="card-brand {{$card->card_brand}}"></span>
                                                     </div>
                                                 </div>
@@ -375,7 +382,9 @@
                                         <div class="form-group">
                                             <label for="card_number">Número do Cartão <span id="card_brand_info"></span></label>
                                             <div class="input-group">
-                                                <input type="text" class="form-control" id="card_number" name="card_number" maxlength="19" data-mask="0000 0000 0000 0000">
+                                                <input type="text" class="form-control" id="card_number"
+                                                       name="card_number" maxlength="19"
+                                                       data-mask="0000 0000 0000 0000">
                                                 <div id="card_brand_div" class="input-group-append d-none">
                                                     <div class="input-group-text brand-append">
                                                         <span id="card_brand_icon" class="card-brand"></span>
@@ -392,23 +401,28 @@
                                     </div>
                                     <div class="col-md-3 mb-3">
                                         <label for="expiry" class="form-label">Validade</label>
-                                        <input type="text" class="form-control" id="expiry" name="expiry" maxlength="7" data-mask="00/0000">
+                                        <input type="text" class="form-control" id="expiry" name="expiry" maxlength="7"
+                                               data-mask="00/0000">
                                     </div>
                                     <div class="col-md-3 mb-3">
                                         <label for="cvv" class="form-label">CVV</label>
-                                        <input type="text" class="form-control" id="cvv" name="cvv" maxlength="4" data-mask="0000">
+                                        <input type="text" class="form-control" id="cvv" name="cvv" maxlength="4"
+                                               data-mask="0000">
                                     </div>
                                 </div>
                                 <div class="form-check mb-3">
                                     <input class="form-check-input" type="checkbox" id="save_card" name="save_card">
-                                    <label class="form-check-label" for="save_card">Salvar cartão para futuras compras</label>
+                                    <label class="form-check-label" for="save_card">Salvar cartão para futuras
+                                        compras</label>
                                 </div>
                             </div>
                         </div>
 
                         <input type="hidden" id="selected_plan" name="plan_id">
 
-                        <button type="submit" class="btn btn-primary mt-4" id="confirm-subscription" disabled>Confirmar Assinatura</button>
+                        <button type="submit" class="btn btn-primary mt-4" id="confirm-subscription" disabled>Confirmar
+                            Assinatura
+                        </button>
                     </form>
 
                     <div id="payment-response" class="mt-4"></div>
@@ -434,7 +448,6 @@
         const selectedPlanInput = document.getElementById('selected_plan');
         const paymentMethodSection = document.getElementById('payment-method-section');
         const creditCardSection = document.getElementById('credit-card-section');
-        const savedCardsSection = document.getElementById('saved-cards-container');
         const savedCardsContainer = document.getElementById('saved-cards-container');
         const newCardContainer = document.getElementById('new-card-container');
 
@@ -464,10 +477,10 @@
         document.querySelectorAll('.select-plan-btn').forEach(button => {
             button?.addEventListener('click', function () {
                 document.querySelectorAll('.select-plan-btn').forEach(btn => {
-                    btn.closest('.card').classList.remove('border-primary');
+                    btn.closest('.card').classList.remove('selected');
                 });
 
-                this.closest('.card').classList.add('border-primary');
+                this.closest('.card').classList.add('selected');
                 selectedPlanInput.value = this.dataset.planId;
 
                 paymentMethodSection.style.display = 'block';
@@ -543,9 +556,9 @@
         function validateCreditCardForm() {
             if (selectedPaymentMethod !== 'credit_card') return;
 
-            const cardType = document.querySelector('[name="card_type"]:checked')?.value;
+            const selectedCard = document.querySelector('.card-type-option.selected').dataset.type;
 
-            if (cardType === 'saved') {
+            if (selectedCard === 'saved') {
                 validateSavedCardSelection();
                 return;
             }
@@ -644,42 +657,49 @@
             submitButton.innerText = "Processando...";
 
             try {
-                let cardTypeInput = document.querySelector('[name="card_type"]:checked');
-                let isNewCard = !cardTypeInput || cardTypeInput.value === 'new'; // Se não existir, assume 'new'
-
                 // 🔹 Se for cartão de crédito e novo cartão, gera token antes de enviar ao backend
-                if (selectedPaymentMethod === 'credit_card' && isNewCard) {
-                    const cardData = {
-                        brand: cardBrandIcon.classList[1], // Bandeira do cartão
-                        number: cardNumberInput.value.replace(/\D/g, ""), // Número do cartão (sem espaços)
-                        expirationMonth: document.getElementById("expiry").value.split("/")[0], // Mês de expiração
-                        expirationYear: "20" + document.getElementById("expiry").value.split("/")[1].slice(-2), // 🔥 Corrigido!
-                        cvv: document.getElementById("cvv").value, // Código de segurança
-                        holderName: document.getElementById("card_holder").value, // Nome do titular
-                        holderDocument: document.getElementById("cpf").value, // CPF do titular
-                        reuse: true // Permite reutilização do cartão salvo
-                    };
+                if (selectedPaymentMethod === 'credit_card') {
+                    let isNewCard = newCardContainer.classList.contains('d-none') === false;
 
-                    try {
-                        // 🔹 Gera o token corretamente com a API da EfiPay
-                        const result = await EfiPay.CreditCard
-                            .setAccount("{{env('EFI_PAY_ACCOUNT_ID')}}")
-                            .setEnvironment("{{env('EFI_PAY_ENV', 'sandbox')}}")
-                            .setCreditCardData(cardData)
-                            .getPaymentToken();
+                    if (isNewCard) {
+                        const cardData = {
+                            brand: cardBrandIcon.classList[1], // Bandeira do cartão
+                            number: cardNumberInput.value.replace(/\D/g, ""), // Número do cartão (sem espaços)
+                            expirationMonth: document.getElementById("expiry").value.split("/")[0], // Mês de expiração
+                            expirationYear: "20" + document.getElementById("expiry").value.split("/")[1].slice(-2), // 🔥 Corrigido!
+                            cvv: document.getElementById("cvv").value, // Código de segurança
+                            holderName: document.getElementById("card_holder").value, // Nome do titular
+                            holderDocument: document.getElementById("cpf").value, // CPF do titular
+                            reuse: true // Permite reutilização do cartão salvo
+                        };
 
-                        requestData.payment_token = result.payment_token;
-                        requestData.card_holder = cardData.holderName;
-                        requestData.card_brand = cardData.brand;
-                        requestData.card_mask = result.card_mask;
-                        requestData.save_card = cardData.reuse;
+                        try {
+                            // 🔹 Gera o token corretamente com a API da EfiPay
+                            const result = await EfiPay.CreditCard
+                                .setAccount("{{env('EFI_PAY_ACCOUNT_ID')}}")
+                                .setEnvironment("{{env('EFI_PAY_ENV', 'sandbox')}}")
+                                .setCreditCardData(cardData)
+                                .getPaymentToken();
 
-                    } catch (error) {
-                        console.error("Erro ao gerar token do cartão:", error);
-                        alert("Erro ao processar o cartão.");
-                        submitButton.disabled = false;
-                        submitButton.innerText = "Confirmar Assinatura";
-                        return;
+                            requestData.payment_token = result.payment_token;
+                            requestData.card_holder = cardData.holderName;
+                            requestData.card_brand = cardData.brand;
+                            requestData.card_mask = result.card_mask;
+                            requestData.save_card = cardData.reuse;
+
+                        } catch (error) {
+                            console.error("Erro ao gerar token do cartão:", error);
+                            alert("Erro ao processar o cartão.");
+                            submitButton.disabled = false;
+                            submitButton.innerText = "Confirmar Assinatura";
+                            return;
+                        }
+                    } else {
+                        // Lógica para cartão existente
+                        const selectedCard = document.querySelector('.saved-card-option.selected');
+                        if (selectedCard) {
+                            requestData.payment_token = selectedCard.dataset.paymentToken;
+                        }
                     }
                 }
 

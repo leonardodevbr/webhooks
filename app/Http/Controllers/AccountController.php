@@ -231,7 +231,7 @@ class AccountController extends Controller
             $payments = [];
             $pendingPayment = null;
 
-            $subscription = $account->subscriptions()->where('expires_at','>', now())->orderByDesc('created_at')->first();
+            $subscription = $account->subscriptions()->where('expires_at','>', now())->orWhere('expires_at', null)->orderByDesc('created_at')->first();
 
             if (!empty($subscription)) {
                 $payments = $subscription->payments()->get();

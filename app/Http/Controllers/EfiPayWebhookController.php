@@ -29,110 +29,110 @@ class EfiPayWebhookController extends Controller
         Log::info("Token de notificação recebido da Efí Pay", ['token' => $notificationToken]);
 
         // Buscar detalhes da notificação via API da Efí Pay
-//        $notificationData = $this->paymentService->getNotificationDetails($notificationToken);
+        $notificationData = $this->paymentService->getNotificationDetails($notificationToken);
 
-$notificationData = json_decode('{
-  "code": 200,
-  "data": [
-    {
-      "id": 1,
-      "type": "subscription",
-      "custom_id": "2",
-      "status": {
-        "current": "new",
-        "previous": null
-      },
-      "identifiers": {
-        "subscription_id": 95101
-      },
-      "created_at": "2025-02-11 12:02:55"
-    },
-    {
-      "id": 2,
-      "type": "subscription",
-      "custom_id": "2",
-      "status": {
-        "current": "new_charge",
-        "previous": "new"
-      },
-      "identifiers": {
-        "subscription_id": 95101
-      },
-      "created_at": "2025-02-11 12:02:55"
-    },
-    {
-      "id": 3,
-      "type": "subscription_charge",
-      "custom_id": "2",
-      "status": {
-        "current": "new",
-        "previous": null
-      },
-      "identifiers": {
-        "subscription_id": 95101,
-        "charge_id": 44478425
-      },
-      "created_at": "2025-02-11 12:02:55"
-    },
-    {
-      "id": 4,
-      "type": "subscription_charge",
-      "custom_id": "2",
-      "status": {
-        "current": "waiting",
-        "previous": "new"
-      },
-      "identifiers": {
-        "subscription_id": 95101,
-        "charge_id": 44478425
-      },
-      "created_at": "2025-02-11 12:02:55"
-    },
-    {
-      "id": 5,
-      "type": "subscription",
-      "custom_id": "2",
-      "status": {
-        "current": "active",
-        "previous": "new_charge"
-      },
-      "identifiers": {
-        "subscription_id": 95101
-      },
-      "created_at": "2025-02-11 12:02:56"
-    },
-    {
-      "id": 6,
-      "type": "subscription_charge",
-      "custom_id": "2",
-      "status": {
-        "current": "approved",
-        "previous": "waiting"
-      },
-      "identifiers": {
-        "subscription_id": 95101,
-        "charge_id": 44478425
-      },
-      "created_at": "2025-02-11 14:53:48"
-    },
-    {
-      "id": 7,
-      "type": "subscription_charge",
-      "custom_id": "2",
-      "status": {
-        "current": "paid",
-        "previous": "approved"
-      },
-      "identifiers": {
-        "subscription_id": 95101,
-        "charge_id": 44478425
-      },
-      "created_at": "2025-02-11 14:54:18",
-      "value": 1999
-    }
-  ]
-}
-', true);
+//$notificationData = json_decode('{
+//  "code": 200,
+//  "data": [
+//    {
+//      "id": 1,
+//      "type": "subscription",
+//      "custom_id": "2",
+//      "status": {
+//        "current": "new",
+//        "previous": null
+//      },
+//      "identifiers": {
+//        "subscription_id": 95120
+//      },
+//      "created_at": "2025-02-11 12:02:55"
+//    },
+//    {
+//      "id": 2,
+//      "type": "subscription",
+//      "custom_id": "2",
+//      "status": {
+//        "current": "new_charge",
+//        "previous": "new"
+//      },
+//      "identifiers": {
+//        "subscription_id": 95120
+//      },
+//      "created_at": "2025-02-11 12:02:55"
+//    },
+//    {
+//      "id": 3,
+//      "type": "subscription_charge",
+//      "custom_id": "2",
+//      "status": {
+//        "current": "new",
+//        "previous": null
+//      },
+//      "identifiers": {
+//        "subscription_id": 95120,
+//        "charge_id": 44478425
+//      },
+//      "created_at": "2025-02-11 12:02:55"
+//    },
+//    {
+//      "id": 4,
+//      "type": "subscription_charge",
+//      "custom_id": "2",
+//      "status": {
+//        "current": "waiting",
+//        "previous": "new"
+//      },
+//      "identifiers": {
+//        "subscription_id": 95120,
+//        "charge_id": 44478425
+//      },
+//      "created_at": "2025-02-11 12:02:55"
+//    },
+//    {
+//      "id": 5,
+//      "type": "subscription",
+//      "custom_id": "2",
+//      "status": {
+//        "current": "active",
+//        "previous": "new_charge"
+//      },
+//      "identifiers": {
+//        "subscription_id": 95120
+//      },
+//      "created_at": "2025-02-11 12:02:56"
+//    },
+//    {
+//      "id": 6,
+//      "type": "subscription_charge",
+//      "custom_id": "2",
+//      "status": {
+//        "current": "approved",
+//        "previous": "waiting"
+//      },
+//      "identifiers": {
+//        "subscription_id": 95120,
+//        "charge_id": 44478425
+//      },
+//      "created_at": "2025-02-11 14:53:48"
+//    },
+//    {
+//      "id": 7,
+//      "type": "subscription_charge",
+//      "custom_id": "2",
+//      "status": {
+//        "current": "paid",
+//        "previous": "approved"
+//      },
+//      "identifiers": {
+//        "subscription_id": 95120,
+//        "charge_id": 44478425
+//      },
+//      "created_at": "2025-02-11 14:54:18",
+//      "value": 1999
+//    }
+//  ]
+//}
+//', true);
 
         if (!$notificationData || empty($notificationData['data'])) {
             Log::error("Dados da notificação incompletos", ['notification' => $notificationData]);
