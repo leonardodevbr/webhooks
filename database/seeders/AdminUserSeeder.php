@@ -23,7 +23,7 @@ class AdminUserSeeder extends Seeder
             'is_admin' => true,
 
             // Dados adicionais do admin
-            'cpf' => '123.456.789-00',
+            'cpf' => '963.957.425-23',
             'phone' => '(11) 99999-9999',
             'birth_date' => '1985-06-15',
 

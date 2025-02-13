@@ -8,13 +8,17 @@ body {
     height: 100%;
 }
 
+.container, .container-fluid{
+    height: calc(100vh - 83px)!important;
+}
+
 #sidebar {
     width: 25%;
     overflow-y: auto;
     background: #e9ecef; /* Cinza claro */
     padding: 1rem; /* Ajusta o espaçamento interno */
     border-right: 1px solid #dee2e6;
-    height: calc(100vh - 83px);
+    height: 100%;
 }
 
 #content {
@@ -276,43 +280,49 @@ table.compact-table td {
     background-size: cover;
     background-repeat: no-repeat;
 }
-.plan-card {
-    cursor: pointer;
-    transition: all 0.3s ease;
-    border: 1px solid #a1a7ad;
+
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    color: white;
+    font-size: 24px;
 }
 
-.plan-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-}
-
-.plan-card.selected {
-    border: 2px solid #007bff;
-    background-color: #f8f9ff;
-}
-
-.payment-method-card {
-    cursor: pointer;
-    transition: all 0.3s ease;
-    border: 2px solid transparent;
-}
-
-.payment-method-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-}
-
-.payment-method-card.selected {
-    border-color: #007bff;
-    background-color: #f8f9ff;
-}
-
+.plan-card,
+.payment-method-card,
+.card-type-option,
 .saved-card-option {
     cursor: pointer;
-    transition: all 0.3s ease;
+    border: 1px solid #e0e0e0;
 }
 
+.plan-card:hover,
+.payment-method-card:hover,
+.card-type-option:hover,
 .saved-card-option:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.plan-card.selected,
+.payment-method-card.selected,
+.card-type-option.selected,
+.saved-card-option.selected {
+    border: 2px solid #007bff;
     background-color: #f8f9ff;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.card-info {
+    margin-right: 10px;
 }

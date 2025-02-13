@@ -37,7 +37,7 @@ class SubscriptionController extends Controller
                     return response()->json(['error' => 'Nenhum token de pagamento foi gerado.'], 400);
                 }
 
-                if ($request->has('save_card') && $request->input('save_card') == 'on') {
+                if ($request->has('save_card') && $request->input('save_card')) {
                     CustomerCard::updateOrCreate(
                         ['account_id' => auth()->id(), 'payment_token' => $paymentToken],
                         [
@@ -127,9 +127,9 @@ class SubscriptionController extends Controller
 
             return response()->json($responseData);
         } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Erro ao criar assinatura: '.$e->getMessage());
+            Log::error($e->getMessage());
 
+            DB::rollBack();
             return response()->json(['error' => 'Não foi possível criar a assinatura. Tente novamente mais tarde.'], 500);
         }
     }

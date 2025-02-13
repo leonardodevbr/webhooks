@@ -23,8 +23,9 @@ return new class extends Migration {
         Schema::create('plan_limits', function (Blueprint $table) {
             $table->id();
             $table->foreignId('plan_id')->constrained('plans')->onDelete('cascade');
-            $table->string('resource'); // Nome do recurso (ex: "webhooks", "retransmissions")
-            $table->integer('limit_value'); // Quantidade máxima permitida
+            $table->string('resource');
+            $table->integer('limit_value')->nullable(); // Pode ser nulo se o recurso não estiver disponível
+            $table->boolean('available')->default(true); // Indica se o recurso está disponível no plano
             $table->timestamps();
         });
     }

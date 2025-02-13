@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $limit_value
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
+ * @property bool|null $available
  * 
  * @property Plan $plan
  *
@@ -32,13 +33,15 @@ class PlanLimit extends Model
 
 	protected $casts = [
 		'plan_id' => 'int',
-		'limit_value' => 'int'
+		'limit_value' => 'int',
+		'available' => 'bool'
 	];
 
 	protected $fillable = [
 		'plan_id',
 		'resource',
-		'limit_value'
+		'limit_value',
+		'available'
 	];
 
 	public function plan(): BelongsTo

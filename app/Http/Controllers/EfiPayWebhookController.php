@@ -43,7 +43,7 @@ $notificationData = json_decode('{
         "previous": null
       },
       "identifiers": {
-        "subscription_id": 95034
+        "subscription_id": 95101
       },
       "created_at": "2025-02-11 12:02:55"
     },
@@ -56,7 +56,7 @@ $notificationData = json_decode('{
         "previous": "new"
       },
       "identifiers": {
-        "subscription_id": 95034
+        "subscription_id": 95101
       },
       "created_at": "2025-02-11 12:02:55"
     },
@@ -69,7 +69,7 @@ $notificationData = json_decode('{
         "previous": null
       },
       "identifiers": {
-        "subscription_id": 95034,
+        "subscription_id": 95101,
         "charge_id": 44478425
       },
       "created_at": "2025-02-11 12:02:55"
@@ -83,7 +83,7 @@ $notificationData = json_decode('{
         "previous": "new"
       },
       "identifiers": {
-        "subscription_id": 95034,
+        "subscription_id": 95101,
         "charge_id": 44478425
       },
       "created_at": "2025-02-11 12:02:55"
@@ -97,7 +97,7 @@ $notificationData = json_decode('{
         "previous": "new_charge"
       },
       "identifiers": {
-        "subscription_id": 95034
+        "subscription_id": 95101
       },
       "created_at": "2025-02-11 12:02:56"
     },
@@ -110,7 +110,7 @@ $notificationData = json_decode('{
         "previous": "waiting"
       },
       "identifiers": {
-        "subscription_id": 95034,
+        "subscription_id": 95101,
         "charge_id": 44478425
       },
       "created_at": "2025-02-11 14:53:48"
@@ -124,7 +124,7 @@ $notificationData = json_decode('{
         "previous": "approved"
       },
       "identifiers": {
-        "subscription_id": 95034,
+        "subscription_id": 95101,
         "charge_id": 44478425
       },
       "created_at": "2025-02-11 14:54:18",
@@ -233,6 +233,8 @@ $notificationData = json_decode('{
                 'paid_at' => $externalPayment['data']['status'] === 'paid' ? $externalPayment['data']['payment']['created_at'] ?? now() : null
             ]
         );
+
+        $subscription->update(['is_active' => $externalPayment['data']['status'] == 'paid']);
 
         Log::info("Pagamento confirmado", ['subscription_id' => $subscription->id, 'charge_id' => $chargeId]);
         return response()->json(['status' => 'pagamento confirmado']);
