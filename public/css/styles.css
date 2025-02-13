@@ -276,3 +276,43 @@ table.compact-table td {
     background-size: cover;
     background-repeat: no-repeat;
 }
+.plan-card {
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1px solid #a1a7ad;
+}
+
+.plan-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.plan-card.selected {
+    border: 2px solid #007bff;
+    background-color: #f8f9ff;
+}
+
+.payment-method-card {
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+
+.payment-method-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.payment-method-card.selected {
+    border-color: #007bff;
+    background-color: #f8f9ff;
+}
+
+.saved-card-option {
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.saved-card-option:hover {
+    background-color: #f8f9ff;
+}

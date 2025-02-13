@@ -20,7 +20,20 @@ class AdminUserSeeder extends Seeder
             'slug' => 'admin',
             'email' => env('ADMIN_EMAIL', 'admin@admin.com'),
             'password' => Hash::make(env('ADMIN_PASSWORD', '1234qwer')),
-            'is_admin' => true
+            'is_admin' => true,
+
+            // Dados adicionais do admin
+            'cpf' => '123.456.789-00',
+            'phone' => '(11) 99999-9999',
+            'birth_date' => '1985-06-15',
+
+            // Endereço do admin
+            'street' => 'Rua Exemplo',
+            'number' => '123',
+            'neighborhood' => 'Centro',
+            'zipcode' => '01010-000',
+            'city' => 'São Paulo',
+            'state' => 'SP'
         ]);
     }
 }

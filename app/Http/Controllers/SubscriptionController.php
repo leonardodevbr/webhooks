@@ -41,8 +41,8 @@ class SubscriptionController extends Controller
                     CustomerCard::updateOrCreate(
                         ['account_id' => auth()->id(), 'payment_token' => $paymentToken],
                         [
-                            'card_brand' => $request->card_brand,
-                            'card_mask' => $request->card_mask
+                            'card_brand' => $request->input('card_brand'),
+                            'card_mask' => $request->input('card_mask')
                         ]
                     );
                 }
