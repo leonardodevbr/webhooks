@@ -568,6 +568,7 @@
             const expiry = document.getElementById('expiry').value.replace(/\D/g, '');
             const cvv = document.getElementById('cvv').value.replace(/\D/g, '');
 
+
             const isValid = cardNumber.length >= 13 &&
                 cardHolder.length >= 3 &&
                 expiry.length === 6 &&
