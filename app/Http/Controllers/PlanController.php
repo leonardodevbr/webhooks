@@ -67,7 +67,9 @@ class PlanController extends Controller {
             PlanLimit::create([
                 'plan_id' => $plan->id,
                 'resource' => $limit,
-                'limit_value' => $request->limit_values[$index]
+                'limit_value' => $request->limit_values[$index] ?: null,
+                'description' => $request->descriptions[$index] ?: null,
+                'available' => isset($request->availables[$index])
             ]);
         }
 
@@ -100,7 +102,9 @@ class PlanController extends Controller {
             PlanLimit::create([
                 'plan_id' => $plan->id,
                 'resource' => $limit,
-                'limit_value' => $request->limit_values[$index]
+                'limit_value' => $request->limit_values[$index] ?: null,
+                'description' => $request->descriptions[$index] ?: null,
+                'available' => isset($request->availables[$index])
             ]);
         }
 

@@ -12,7 +12,7 @@
     <meta name="apple-mobile-web-app-title" content="Webhooks"/>
     <link rel="manifest" href="/site.webmanifest"/>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="/css/styles.css">
     <!-- CSRF Token -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -83,20 +83,23 @@
                 <label>Limites do Plano</label>
                 <div class="input-group mb-2">
                     <input type="text" name="limits[]" class="form-control" placeholder="Nome do limite" required>
-                    <input type="number" name="limit_values[]" class="form-control" placeholder="Valor" min="1" required>
+                    <input type="text" name="limit_values[]" class="form-control" placeholder="Valor">
+                    <input type="text" name="descriptions[]" class="form-control" placeholder="Descrição">
                     <div class="input-group-append">
+                        <div class="input-group-text">
+                            <input type="checkbox" name="availables[]" checked>
+                        </div>
                         <button type="button" class="btn btn-success add-limit">+</button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div id="limit-values">
-            <!-- Os campos de valor dos limites serão adicionados dinamicamente aqui -->
+        <div class="text-right">
+            <button type="submit" class="btn btn-primary">Salvar Plano</button>
+            <a href="{{ route('plans.index') }}" class="btn btn-secondary ml-2">Voltar</a>
         </div>
 
-        <button type="submit" class="btn btn-success">Criar Plano</button>
-        <a href="{{ route('plans.index') }}" class="btn btn-secondary">Voltar</a>
     </form>
 </div>
 
@@ -108,8 +111,12 @@
             var limitGroup = `
                 <div class="input-group mb-2">
                     <input type="text" name="limits[]" class="form-control" placeholder="Nome do limite" required>
-                    <input type="number" name="limit_values[]" class="form-control" placeholder="Valor" min="1" required>
+                    <input type="text" name="limit_values[]" class="form-control" placeholder="Valor">
+                    <input type="text" name="descriptions[]" class="form-control" placeholder="Descrição">
                     <div class="input-group-append">
+                        <div class="input-group-text">
+                            <input type="checkbox" name="availables[]" checked>
+                        </div>
                         <button type="button" class="btn btn-danger remove-limit">-</button>
                     </div>
                 </div>
