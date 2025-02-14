@@ -93,8 +93,7 @@ class EfiPayService implements IPaymentService
 
         $planData = [
             'name' => $plan['name'],
-            'interval' => $this->mapBillingCycle($plan['billing_cycle']),
-            'repeats' => null
+            'interval' => $this->mapBillingCycle($plan['billing_cycle'])
         ];
 
         $response = Http::withToken($accessToken)
@@ -112,9 +111,7 @@ class EfiPayService implements IPaymentService
         $accessToken = $this->getAccessToken();
 
         $planData = [
-            'name' => $plan['name'],
-            'interval' => $this->mapBillingCycle($plan['billing_cycle']),
-            'repeats' => null
+            'name' => $plan['name']
         ];
 
         $response = Http::withToken($accessToken)

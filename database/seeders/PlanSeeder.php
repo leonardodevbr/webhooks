@@ -14,7 +14,7 @@ class PlanSeeder extends Seeder {
             'slug' => 'basico',
             'price' => 9.99,
             'billing_cycle' => 'monthly',
-            'external_plan_id' => 13129,
+            'external_plan_id' => null,
             'active' => true,
             'description' => 'Plano ideal para indivíduos e freelancers.'
         ]);
@@ -24,7 +24,7 @@ class PlanSeeder extends Seeder {
             'slug' => 'pro',
             'price' => 39.99,
             'billing_cycle' => 'monthly',
-            'external_plan_id' => 13130,
+            'external_plan_id' => null,
             'active' => true,
             'description' => 'Plano recomendado para pequenas empresas.'
         ]);
@@ -34,7 +34,7 @@ class PlanSeeder extends Seeder {
             'slug' => 'business',
             'price' => 79.99,
             'billing_cycle' => 'monthly',
-            'external_plan_id' => 13131,
+            'external_plan_id' => null,
             'active' => true,
             'description' => 'Plano completo para grandes corporações.'
         ]);

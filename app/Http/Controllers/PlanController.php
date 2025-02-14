@@ -6,6 +6,7 @@ use App\Interfaces\IPaymentService;
 use App\Models\Plan;
 use App\Models\PlanLimit;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 
@@ -43,39 +44,73 @@ class PlanController extends Controller {
     /**
      * Processa o formulário de criação e armazena um novo plano.
      */
-    public function store(Request $request) {
-        // Validação dos dados enviados
+    public function store(Request $request)
+    {
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255|unique:plans,name',
             'slug' => 'required|string|max:255|unique:plans,slug',
             'description' => 'nullable|string|max:255',
             'price' => 'required|numeric|min:0',
-            'billing_cycle' => 'required|in:monthly,yearly'
+            'billing_cycle' => 'required|in:monthly,yearly',
+            'limits' => 'required|json'
         ]);
 
         if ($validator->fails()) {
-            return redirect()->back()->withErrors($validator)->withInput();
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
         }
 
-        // Criar plano
-        $plan = Plan::create($validator->validated());
+        DB::beginTransaction();
+        try {
+            // Criar plano no banco local
+            $plan = Plan::create($validator->safe()->except('limits'));
 
-        if ($request->has('resources')) {
-            foreach ($request->resources as $index => $resource) {
+            // Criar plano na API externa
+            try {
+                $externalPlan = $this->paymentService->createPlan($plan->toArray());
+                $plan->update(['external_plan_id' => $externalPlan['data']['plan_id']]);
+            } catch (\Exception $e) {
+                DB::rollback();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Erro ao criar plano na EFI: ' . $e->getMessage()
+                ], 500);
+            }
+
+            // Criar limites
+            $limits = json_decode($request->limits, true);
+            foreach ($limits as $limit) {
                 PlanLimit::create([
                     'plan_id' => $plan->id,
-                    'resource' => $resource,
-                    'limit_value' => $request->limit_values[$index] ?: null,
-                    'description' => $request->descriptions[$index] ?: null,
-                    'available' => isset($request->availables[$index])
+                    'resource' => $limit['resource'],
+                    'limit_value' => $limit['limit_value'],
+                    'description' => $limit['description'],
+                    'available' => $limit['available']
                 ]);
             }
-        }
 
-        return redirect()->route('plans.index')->with('success', 'Plano criado com sucesso.');
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Plano criado com sucesso.',
+                'redirect' => route('plans.index')
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollback();
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Ocorreu um erro ao criar o plano: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
-    public function update(Request $request, $id) {
+    public function update(Request $request, $id)
+    {
         $plan = Plan::findOrFail($id);
 
         $validator = Validator::make($request->all(), [
@@ -84,32 +119,58 @@ class PlanController extends Controller {
             'description' => 'nullable|string|max:255',
             'price' => 'required|numeric|min:0',
             'billing_cycle' => 'required|in:monthly,yearly',
-            'limits' => 'array'
+            'limits' => 'required|json'
         ]);
 
         if ($validator->fails()) {
-            return redirect()->back()->withErrors($validator)->withInput();
+            return response()->json([
+                'success' => false,
+                'errors' => $validator->errors()
+            ], 422);
         }
 
-        // Atualizar plano
-        $plan->update($validator->validated());
+        DB::beginTransaction();
+        try {
+            // Atualizar plano
+            if (empty($plan->external_plan_id)) {
+                $externalPlan = $this->paymentService->createPlan($plan->toArray());
+            } else {
+                $this->paymentService->updatePlan($plan->toArray());
+            }
 
-        // Atualizar limites
-        $plan->plan_limits()->delete();
-        if ($request->has('resources')) {
-            foreach ($request->resources as $index => $resource) {
+            $plan->update(array_merge([$validator->safe()->except('limits'), 'external_plan_id' => $externalPlan['data']['plan_id'] ?? $plan->external_plan_id]));
+
+            // Atualizar limites
+            $plan->plan_limits()->delete();
+
+            $limits = json_decode($request->limits, true);
+            foreach ($limits as $limit) {
                 PlanLimit::create([
                     'plan_id' => $plan->id,
-                    'resource' => $resource,
-                    'limit_value' => $request->limit_values[$index] ?: null,
-                    'description' => $request->descriptions[$index] ?: null,
-                    'available' => isset($request->availables[$index])
+                    'resource' => $limit['resource'],
+                    'limit_value' => $limit['limit_value'],
+                    'description' => $limit['description'],
+                    'available' => $limit['available']
                 ]);
             }
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Plano atualizado com sucesso.',
+                'redirect' => route('plans.index')
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollback();
+            Log::error($e->getMessage());
+
+            return response()->json([
+                'success' => false,
+                'errors' => ['general' => ['Ocorreu um erro ao salvar o plano. Por favor, tente novamente.']]
+            ], 500);
         }
-
-
-        return redirect()->route('plans.index')->with('success', 'Plano atualizado com sucesso.');
     }
 
     /**
@@ -117,11 +178,39 @@ class PlanController extends Controller {
      */
     public function destroy($id) {
         $plan = Plan::findOrFail($id);
-        $plan->plan_limits()->delete();
-        $plan->delete();
 
-        return redirect()->route('plans.index')->with('success', 'Plano deletado com sucesso.');
+        try {
+            // Verifica se o plano tem um ID externo vinculado
+            if (!empty($plan->external_plan_id)) {
+                // Verifica se o plano existe na API da EfiPay antes de tentar excluir
+                try {
+                    $externalPlan = $this->paymentService->getPlan($plan->external_plan_id);
+
+                    if (!empty($externalPlan['data']['plan_id'])) {
+                        // Tenta excluir o plano na API
+                        $this->paymentService->deletePlan($plan->external_plan_id);
+                    }
+                } catch (\Exception $e) {
+                    Log::warning('Plano não encontrado na EfíPay ou erro ao buscar: ' . $e->getMessage());
+                    // Continua o processo de exclusão no banco caso a API retorne erro de inexistência
+                }
+            }
+
+            // Verifica se existem assinaturas vinculadas ao plano antes de remover no banco
+            if ($plan->subscriptions()->exists()) {
+                return redirect()->route('plans.index')->with('error', 'Não é possível excluir um plano com assinaturas vinculadas.');
+            }
+
+            // Remove o plano no banco
+            $plan->delete();
+
+            return redirect()->route('plans.index')->with('success', 'Plano excluído com sucesso!');
+        } catch (\Exception $e) {
+            Log::error('Erro ao excluir plano: ' . $e->getMessage());
+            return redirect()->route('plans.index')->with('error', 'Erro ao excluir o plano.');
+        }
     }
+
 
     /**
      * Sincroniza o plano com a Efí Pay.

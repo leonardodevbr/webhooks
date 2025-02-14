@@ -44,7 +44,7 @@
     </div>
 </nav>
 
-<div class="container mt-4">
+<div class="container mt-4 pb-4">
     <h3 class="mb-3">Criar Novo Plano</h3>
 
     @if ($errors->any())
@@ -57,201 +57,14 @@
         </div>
     @endif
 
-    <form action="{{ route('plans.store') }}" method="POST">
-        @csrf
-        <div class="form-group">
-            <label for="name">Nome</label>
-            <input type="text" name="name" class="form-control" id="name" value="{{ old('name') }}" required>
-        </div>
-        <div class="form-group">
-            <label for="slug">Slug</label>
-            <input type="text" name="slug" class="form-control" id="slug" value="{{ old('slug') }}" required>
-        </div>
-        <div class="form-group">
-            <label for="price">Preço</label>
-            <input type="number" step="0.01" name="price" class="form-control" id="price" value="{{ old('price') }}" required>
-        </div>
-        <div class="form-group">
-            <label for="billing_cycle">Ciclo de Pagamento</label>
-            <select name="billing_cycle" id="billing_cycle" class="form-control" required>
-                <option value="monthly" {{ old('billing_cycle') == 'monthly' ? 'selected' : '' }}>Mensal</option>
-                <option value="yearly" {{ old('billing_cycle') == 'yearly' ? 'selected' : '' }}>Anual</option>
-            </select>
-        </div>
-        <div class="mb-4">
-            <h5>Limites do Plano</h5>
-            <table class="table">
-                <thead>
-                <tr>
-                    <th>Recurso</th>
-                    <th>Valor</th>
-                    <th>Descrição</th>
-                    <th>Disponível</th>
-                    <th>Ações</th>
-                </tr>
-                </thead>
-                <tbody id="limits-table">
-                @foreach ($plan->plan_limits ?? [] as $limit)
-                    <tr class="{{ $limit->available ? '' : 'text-muted' }}">
-                        <td>{{ ucfirst(str_replace('_', ' ', $limit->resource)) }}</td>
-                        <td>{{ $limit->limit_value }}</td>
-                        <td>{{ $limit->description }}</td>
-                        <td>{{ $limit->available ? 'Sim' : 'Não' }}</td>
-                        <td>
-                            <button type="button" class="btn btn-sm btn-primary edit-limit"
-                                    data-limit="{{ htmlspecialchars($limit->toJson()) }}">Editar</button>
-                            <button type="button" class="btn btn-sm btn-danger remove-limit" data-id="{{ $limit->id }}">Remover</button>
-                        </td>
-                    </tr>
-                @endforeach
-                </tbody>
-            </table>
-            <button type="button" class="btn btn-success" id="add-limit">Adicionar Limite</button>
-        </div>
-
-        <!-- Modal para edição/criação de limite -->
-        <div class="modal fade" id="limitModal" tabindex="-1" role="dialog" aria-labelledby="limitModalLabel" aria-hidden="true">
-            <div class="modal-dialog" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="limitModalLabel">Editar Limite</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Fechar">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                    <div class="modal-body">
-                        <input type="hidden" id="limit-id">
-                        <div class="form-group">
-                            <label for="resource">Recurso</label>
-                            <input type="text" class="form-control" id="resource" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="limit-value">Valor</label>
-                            <input type="text" class="form-control" id="limit-value">
-                        </div>
-                        <div class="form-group">
-                            <label for="description">Descrição</label>
-                            <textarea class="form-control" id="description" rows="3"></textarea>
-                        </div>
-                        <div class="form-group form-check">
-                            <input type="checkbox" class="form-check-input" id="available">
-                            <label class="form-check-label" for="available">Disponível</label>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
-                        <button type="button" class="btn btn-primary" id="save-limit">Salvar</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="text-right">
-            <button type="submit" class="btn btn-primary">Salvar Plano</button>
-            <a href="{{ route('plans.index') }}" class="btn btn-secondary ml-2">Voltar</a>
-        </div>
-
-
-    </form>
+    @include('admin.plans._form', [
+        'action' => route('plans.store'),
+        'plan' => null
+    ])
 </div>
 
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
-<script>
-    $(document).ready(function() {
-        $(document).ready(function() {
-            // Adicionar limite
-            $('#add-limit').click(function() {
-                $('#limitModal').modal('show');
-                $('#limit-id').val('');
-                $('#resource').val('');
-                $('#limit-value').val('');
-                $('#description').val('');
-                $('#available').prop('checked', true);
-            });
-
-            // Editar limite
-            $(document).on('click', '.edit-limit', function() {
-                try {
-                    var limitData = $(this).data('limit');
-
-                    // Se já for objeto, use diretamente
-                    if (typeof limitData === 'object') {
-                        var limit = limitData;
-                    } else {
-                        // Decodifica os caracteres HTML e então faz o parse
-                        var decodedData = $('<div/>').html(limitData).text();
-                        var limit = JSON.parse(decodedData);
-                    }
-
-                    $('#limitModal').modal('show');
-                    $('#limit-id').val(limit.id);
-                    $('#resource').val(limit.resource);
-                    $('#limit-value').val(limit.limit_value);
-                    $('#description').val(limit.description);
-                    $('#available').prop('checked', limit.available);
-                } catch (e) {
-                    console.error('Erro ao fazer parse do JSON:', e);
-                    console.log('Dados recebidos:', $(this).data('limit'));
-                }
-            });
-
-            // Salvar limite
-            $('#save-limit').click(function() {
-                var limitId = $('#limit-id').val();
-                var resource = $('#resource').val();
-                var limitValue = $('#limit-value').val();
-                var description = $('#description').val();
-                var available = $('#available').prop('checked');
-
-                var limitRow = `
-                <tr class="${available ? '' : 'text-muted'}">
-                    <td>${resource}</td>
-                    <td>${limitValue}</td>
-                    <td>${description}</td>
-                    <td>${available ? 'Sim' : 'Não'}</td>
-                    <td>
-                        <button type="button" class="btn btn-sm btn-primary edit-limit" data-limit='{"id":"${limitId}","resource":"${resource}","limit_value":"${limitValue}","description":"${description}","available":${available}}'>Editar</button>
-                        <button type="button" class="btn btn-sm btn-danger remove-limit" data-id="${limitId}">Remover</button>
-                    </td>
-                </tr>
-            `;
-
-                if (limitId) {
-                    // Atualizar limite existente
-                    $(`tr[data-id="${limitId}"]`).replaceWith(limitRow);
-                } else {
-                    // Adicionar novo limite
-                    $('#limits-table').append(limitRow);
-                }
-
-                $('#limitModal').modal('hide');
-            });
-
-            // Remover limite
-            $(document).on('click', '.remove-limit', function() {
-                $(this).closest('tr').remove();
-            });
-        });
-    });
-
-    async function logoutAccount() {
-        try {
-            const response = await fetch("{{ route('logout') }}", {
-                method: 'POST',
-                headers: {
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                }
-            });
-            if(response.ok){
-                location.reload();
-            } else {
-                alert('Erro ao fazer logout.');
-            }
-        } catch(error) {
-            console.error('Erro ao fazer logout:', error);
-        }
-    }
-</script>
+<script src="{{ asset('js/plan-form.js') }}"></script>
 </body>
 </html>

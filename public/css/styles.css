@@ -5,11 +5,11 @@ html {
 body {
     font-family: Arial, sans-serif;
     margin: 0;
-    height: 100%;
+    min-height: 100%;
 }
 
 .container, .container-fluid{
-    height: calc(100vh - 83px)!important;
+    min-height: calc(100vh - 83px)!important;
 }
 
 #sidebar {
@@ -18,7 +18,7 @@ body {
     background: #e9ecef; /* Cinza claro */
     padding: 1rem; /* Ajusta o espaçamento interno */
     border-right: 1px solid #dee2e6;
-    height: 100%;
+    min-height: 100%;
 }
 
 #content {

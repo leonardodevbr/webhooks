@@ -45,8 +45,21 @@
     </div>
 </nav>
 
-<div class="container mt-4">
+<div class="container mt-4 pb-4">
     <h3 class="mb-3">Planos</h3>
+
+    <!-- Área de mensagens (fixa) -->
+    <div id="flash-message-container">
+        @if(session('success'))
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                {{ session('success') }}
+                <button type="button" class="close" data-dismiss="alert" aria-label="Fechar">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+        @endif
+    </div>
+
     <a href="{{ route('plans.create') }}" class="btn btn-primary mb-3"><i class="fa fa-plus"></i> Novo Plano</a>
 
     @if (count($plans) > 0)
@@ -130,6 +143,32 @@
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
 <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const flashMessageContainer = document.getElementById('flash-message-container');
+
+        // Verifica se há uma mensagem salva no localStorage
+        const flashMessage = localStorage.getItem('flash_success');
+        if (flashMessage) {
+            // Insere a mensagem na div fixa
+            flashMessageContainer.innerHTML = `
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    ${flashMessage}
+                    <button type="button" class="close" data-dismiss="alert" aria-label="Fechar">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+            `;
+
+            // Remove do localStorage para evitar que reapareça em recarregamentos futuros
+            localStorage.removeItem('flash_success');
+
+            // Faz a mensagem desaparecer após 5 segundos
+            setTimeout(() => {
+                flashMessageContainer.innerHTML = ''; // Remove a mensagem
+            }, 5000);
+        }
+    });
+
     async function logoutAccount() {
         try {
             const response = await fetch("{{ route('logout') }}", {
