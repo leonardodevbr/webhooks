@@ -17,10 +17,11 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $id
  * @property int $plan_id
  * @property string $resource
- * @property int $limit_value
+ * @property string|null $limit_value
+ * @property string|null $description
+ * @property bool $available
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
- * @property bool|null $available
  * 
  * @property Plan $plan
  *
@@ -33,7 +34,6 @@ class PlanLimit extends Model
 
 	protected $casts = [
 		'plan_id' => 'int',
-		'limit_value' => 'int',
 		'available' => 'bool'
 	];
 
@@ -41,6 +41,7 @@ class PlanLimit extends Model
 		'plan_id',
 		'resource',
 		'limit_value',
+		'description',
 		'available'
 	];
 

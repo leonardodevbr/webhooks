@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel="stylesheet" href="/css/styles.css">
+
     <!-- CSRF Token -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
 </head>
@@ -55,10 +56,8 @@
                 <tr>
                     <th>#</th>
                     <th>Nome</th>
-                    <th>Slug</th>
                     <th>Preço</th>
                     <th>Ciclo</th>
-                    <th>Criado em</th>
                     <th>Ações</th>
                 </tr>
                 </thead>
@@ -67,10 +66,8 @@
                     <tr>
                         <td>{{ $plan->id }}</td>
                         <td>{{ $plan->name }}</td>
-                        <td>{{ $plan->slug }}</td>
                         <td>{{ number_format($plan->price, 2, ',', '.') }}</td>
                         <td>{{ ucfirst($plan->billing_cycle) }}</td>
-                        <td>{{ \Carbon\Carbon::parse($plan->created_at)->format('d/m/Y H:i:s') }}</td>
                         <td>
                             <a href="{{ route('plans.edit', $plan->id) }}" class="btn btn-sm btn-info">
                                 <i class="fa fa-pencil"></i> Editar
@@ -78,6 +75,9 @@
                             <a href="{{ route('plans.sync', $plan->id) }}" class="btn btn-sm btn-warning" onclick="return confirm('Deseja sincronizar este plano com a Efí?');">
                                 <i class="fa fa-refresh"></i> Sincronizar
                             </a>
+                            <button type="button" class="btn btn-sm btn-secondary" data-toggle="modal" data-target="#limitsModal{{ $plan->id }}">
+                                <i class="fa fa-eye"></i> Ver Limites
+                            </button>
                             <form action="{{ route('plans.destroy', $plan->id) }}" method="POST" style="display:inline-block;" onsubmit="return confirm('Deseja realmente excluir este plano?');">
                                 @csrf
                                 @method('DELETE')
@@ -87,6 +87,37 @@
                             </form>
                         </td>
                     </tr>
+
+                    <!-- Modal para exibir os limites do plano -->
+                    <div class="modal fade" id="limitsModal{{ $plan->id }}" tabindex="-1" role="dialog" aria-labelledby="limitsModalLabel{{ $plan->id }}" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered" role="document">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="limitsModalLabel{{ $plan->id }}">{{ $plan->name }}</h5>
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="Fechar">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body">
+                                    <ul class="list-unstyled">
+                                        @foreach ($plan->plan_limits as $limit)
+                                            <li class="mb-2">
+                                                <i class="fas {{ $limit->available ? 'fa-check text-success' : 'fa-times text-danger' }} mr-2"></i>
+                                                {{ ucfirst(str_replace('_', ' ', $limit->resource)) }}
+                                                @if($limit->available && $limit->limit_value)
+                                                    : {{ $limit->limit_value }}
+                                                @endif
+                                                @if($limit->description)
+                                                    <small class="text-muted d-block">{{ $limit->description }}</small>
+                                                @endif
+                                            </li>
+                                        @endforeach
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                 @endforeach
                 </tbody>
             </table>

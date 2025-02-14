@@ -24,7 +24,8 @@ return new class extends Migration {
             $table->id();
             $table->foreignId('plan_id')->constrained('plans')->onDelete('cascade');
             $table->string('resource');
-            $table->integer('limit_value')->nullable(); // Pode ser nulo se o recurso não estiver disponível
+            $table->string('limit_value')->nullable(); // Pode ser nulo se o recurso não estiver disponível
+            $table->text('description')->nullable();
             $table->boolean('available')->default(true); // Indica se o recurso está disponível no plano
             $table->timestamps();
         });

@@ -20,7 +20,7 @@ class PlanController extends Controller {
      * Exibe a lista de planos.
      */
     public function index() {
-        $plans = Plan::with('limits')->get();
+        $plans = Plan::with('plan_limits')->get();
         return view('admin.plans.index', compact('plans'));
     }
 
@@ -29,6 +29,15 @@ class PlanController extends Controller {
      */
     public function create() {
         return view('admin.plans.create');
+    }
+
+
+    /**
+     * Exibe o formulário para edição de um plano existente.
+     */
+    public function edit($id) {
+        $plan = Plan::with('plan_limits')->findOrFail($id);
+        return view('admin.plans.edit', compact('plan'));
     }
 
     /**
@@ -42,9 +51,8 @@ class PlanController extends Controller {
             'description' => 'nullable|string|max:255',
             'price' => 'required|numeric|min:0',
             'billing_cycle' => 'required|in:monthly,yearly',
-            'limits' => 'required|array', // Limites como array
-            'limits.*.resource' => 'required|string',
-            'limits.*.limit_value' => 'required|integer|min:1'
+            'limits' => 'required|array',
+            'limit_values' => 'required|array|same:limits'
         ]);
 
         if ($validator->fails()) {
@@ -55,28 +63,17 @@ class PlanController extends Controller {
         $plan = Plan::create($validator->validated());
 
         // Criar os limites associados ao plano
-        foreach ($request->limits as $limit) {
+        foreach ($request->limits as $index => $limit) {
             PlanLimit::create([
                 'plan_id' => $plan->id,
-                'resource' => $limit['resource'],
-                'limit_value' => $limit['limit_value']
+                'resource' => $limit,
+                'limit_value' => $request->limit_values[$index]
             ]);
         }
 
         return redirect()->route('plans.index')->with('success', 'Plano criado com sucesso.');
     }
 
-    /**
-     * Exibe o formulário para edição de um plano existente.
-     */
-    public function edit($id) {
-        $plan = Plan::with('limits')->findOrFail($id);
-        return view('admin.plans.edit', compact('plan'));
-    }
-
-    /**
-     * Atualiza os dados do plano.
-     */
     public function update(Request $request, $id) {
         $plan = Plan::findOrFail($id);
 
@@ -87,8 +84,7 @@ class PlanController extends Controller {
             'price' => 'required|numeric|min:0',
             'billing_cycle' => 'required|in:monthly,yearly',
             'limits' => 'required|array',
-            'limits.*.resource' => 'required|string',
-            'limits.*.limit_value' => 'required|integer|min:1'
+            'limit_values' => 'required|array|same:limits'
         ]);
 
         if ($validator->fails()) {
@@ -99,12 +95,12 @@ class PlanController extends Controller {
         $plan->update($validator->validated());
 
         // Atualizar limites
-        $plan->limits()->delete();
-        foreach ($request->limits as $limit) {
+        $plan->plan_limits()->delete();
+        foreach ($request->limits as $index => $limit) {
             PlanLimit::create([
                 'plan_id' => $plan->id,
-                'resource' => $limit['resource'],
-                'limit_value' => $limit['limit_value']
+                'resource' => $limit,
+                'limit_value' => $request->limit_values[$index]
             ]);
         }
 
@@ -116,7 +112,7 @@ class PlanController extends Controller {
      */
     public function destroy($id) {
         $plan = Plan::findOrFail($id);
-        $plan->limits()->delete();
+        $plan->plan_limits()->delete();
         $plan->delete();
 
         return redirect()->route('plans.index')->with('success', 'Plano deletado com sucesso.');

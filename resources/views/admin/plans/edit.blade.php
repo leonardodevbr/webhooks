@@ -79,37 +79,51 @@
                 <option value="yearly" {{ old('billing_cycle', $plan->billing_cycle) == 'yearly' ? 'selected' : '' }}>Anual</option>
             </select>
         </div>
-        <div class="form-group">
-            <label for="max_urls">Máx URLs</label>
-            <input type="number" name="max_urls" class="form-control" id="max_urls" value="{{ old('max_urls', $plan->max_urls) }}" required>
+        <div id="limits-container">
+            @foreach ($plan->plan_limits as $limit)
+                <div class="form-group">
+                    <div class="input-group mb-2">
+                        <input type="text" name="limits[]" class="form-control" placeholder="Nome do limite" value="{{ $limit->resource }}" required>
+                        <input type="number" name="limit_values[]" class="form-control" placeholder="Valor" value="{{ $limit->limit_value }}" min="1" required>
+                        <div class="input-group-append">
+                            <button type="button" class="btn btn-danger remove-limit">-</button>
+                        </div>
+                    </div>
+                </div>
+            @endforeach
+            <div class="form-group">
+                <button type="button" class="btn btn-success add-limit">Adicionar Limite</button>
+            </div>
         </div>
-        <div class="form-group">
-            <label for="max_webhooks_per_url">Máx Webhooks por URL</label>
-            <input type="number" name="max_webhooks_per_url" class="form-control" id="max_webhooks_per_url" value="{{ old('max_webhooks_per_url', $plan->max_webhooks_per_url) }}" required>
-        </div>
-        <div class="form-group">
-            <label for="max_retransmission_urls">Máx URLs de Retransmissão</label>
-            <input type="number" name="max_retransmission_urls" class="form-control" id="max_retransmission_urls" value="{{ old('max_retransmission_urls', $plan->max_retransmission_urls) }}" required>
-        </div>
-        <div class="form-group form-check">
-            <input type="checkbox" name="supports_custom_slugs" class="form-check-input" id="supports_custom_slugs" {{ old('supports_custom_slugs', $plan->supports_custom_slugs) ? 'checked' : '' }}>
-            <label class="form-check-label" for="supports_custom_slugs">Suporta Custom Slugs</label>
-        </div>
-        <div class="form-group form-check">
-            <input type="checkbox" name="real_time_notifications" class="form-check-input" id="real_time_notifications" {{ old('real_time_notifications', $plan->real_time_notifications) ? 'checked' : '' }}>
-            <label class="form-check-label" for="real_time_notifications">Notificações em Tempo Real</label>
-        </div>
+
+
         <button type="submit" class="btn btn-success">Atualizar Plano</button>
-        <a href="{{ route('plans.sync', $plan->id) }}" class="btn btn-warning ml-2" onclick="return confirm('Deseja sincronizar este plano com a Efí?');">
-            <i class="fa fa-refresh"></i> Sincronizar com a Efí
-        </a>
-        <a href="{{ route('plans.index') }}" class="btn btn-secondary ml-2">Voltar</a>
+        <a href="{{ route('plans.index') }}" class="btn btn-secondary">Voltar</a>
     </form>
 </div>
 
 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
 <script>
+    $(document).ready(function() {
+        $('.add-limit').click(function() {
+            var limitGroup = `
+                <div class="input-group mb-2">
+                    <input type="text" name="limits[]" class="form-control" placeholder="Nome do limite" required>
+                    <input type="number" name="limit_values[]" class="form-control" placeholder="Valor" min="1" required>
+                    <div class="input-group-append">
+                        <button type="button" class="btn btn-danger remove-limit">-</button>
+                    </div>
+                </div>
+            `;
+            $('#limits-container').append(limitGroup);
+        });
+
+        $(document).on('click', '.remove-limit', function() {
+            $(this).closest('.input-group').remove();
+        });
+    });
+
     async function logoutAccount() {
         try {
             const response = await fetch("{{ route('logout') }}", {

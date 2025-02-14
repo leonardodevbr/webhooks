@@ -12,12 +12,11 @@
     <meta name="apple-mobile-web-app-title" content="Webhooks"/>
     <link rel="manifest" href="/site.webmanifest"/>
     <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="/css/styles.css">
     <link rel="stylesheet" href="/css/card-brand.css">
     <!-- CSRF Token -->
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
 <nav class="navbar navbar-light bg-dark px-3">
@@ -224,7 +223,9 @@
                       class="text-right">
                     @csrf
                     @method('DELETE')
-                    <button type="submit" class="btn btn-danger">Cancelar Assinatura</button>
+                    <button type="button" class="btn btn-danger" onclick="cancelSubscription({{ $subscription->id }})">
+                        Cancelar Assinatura
+                    </button>
                 </form>
             @elseif($pendingPayment)
                 <div class="row">
@@ -783,6 +784,31 @@
             const input = document.getElementById(id);
             if (input) applyInputMask(input, mask);
         });
+
+        function cancelSubscription(subscriptionId) {
+            if (confirm("Tem certeza de que deseja cancelar sua assinatura?")) {
+                fetch("{{ route('subscription.cancel', ['subscription_id' => ':id']) }}".replace(':id', subscriptionId), {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'Accept': 'application/json'
+                    }
+                })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.message) {
+                            alert(data.message);
+                            location.reload();
+                        } else if (data.error) {
+                            alert("Erro ao cancelar assinatura: " + data.error);
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erro:', error);
+                        alert("Ocorreu um erro ao processar a solicitação.");
+                    });
+            }
+        }
     });
 </script>
 
