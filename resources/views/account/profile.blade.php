@@ -281,7 +281,7 @@
                                                 <hr>
                                                 <ul class="text-left list-unstyled">
                                                     @foreach($plan->plan_limits as $limit)
-                                                        <li class="mb-2 {{ $limit->available ? '' : 'text-muted' }}">
+                                                        <li data-toggle="tooltip" data-title="{{ $limit->description }}" class="mb-2 {{ $limit->available ? '' : 'text-muted' }}">
                                                             <i class="fas {{ $limit->available ? 'fa-check text-success' : 'fa-times text-danger' }} mr-2"></i>
                                                             {{ ucfirst(str_replace('_', ' ', $limit->resource)) }}
                                                             @if($limit->available && $limit->limit_value)
@@ -454,6 +454,8 @@
         const newCardContainer = document.getElementById('new-card-container');
 
         let selectedCard = null;
+
+        $('[data-toggle="tooltip"]').tooltip();
 
         function checkUserFormCompletion() {
             const isComplete = Array.from(requiredFields).every(field => field.value.trim() !== '');
