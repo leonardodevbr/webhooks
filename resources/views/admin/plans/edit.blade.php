@@ -79,18 +79,69 @@
                 <option value="yearly" {{ old('billing_cycle', $plan->billing_cycle) == 'yearly' ? 'selected' : '' }}>Anual</option>
             </select>
         </div>
-        <div id="limits-container">
-            <div class="form-group">
-                <label>Limites do Plano</label>
-                <div class="input-group mb-2">
-                    <input type="text" name="limits[]" class="form-control" placeholder="Nome do limite" required>
-                    <input type="text" name="limit_values[]" class="form-control" placeholder="Valor">
-                    <input type="text" name="descriptions[]" class="form-control" placeholder="Descrição">
-                    <div class="input-group-append">
-                        <div class="input-group-text">
-                            <input type="checkbox" name="availables[]" checked>
+        <div class="mb-4">
+            <h5>Limites do Plano</h5>
+            <table class="table">
+                <thead>
+                <tr>
+                    <th>Recurso</th>
+                    <th>Valor</th>
+                    <th>Descrição</th>
+                    <th>Disponível</th>
+                    <th>Ações</th>
+                </tr>
+                </thead>
+                <tbody id="limits-table">
+                @foreach ($plan->plan_limits ?? [] as $limit)
+                    <tr class="{{ $limit->available ? '' : 'text-muted' }}">
+                        <td>{{ ucfirst(str_replace('_', ' ', $limit->resource)) }}</td>
+                        <td>{{ $limit->limit_value }}</td>
+                        <td>{{ $limit->description }}</td>
+                        <td>{{ $limit->available ? 'Sim' : 'Não' }}</td>
+                        <td>
+                            <button type="button" class="btn btn-sm btn-primary edit-limit"
+                                    data-limit="{{ htmlspecialchars($limit->toJson()) }}">Editar</button>
+                            <button type="button" class="btn btn-sm btn-danger remove-limit" data-id="{{ $limit->id }}">Remover</button>
+                        </td>
+                    </tr>
+                @endforeach
+                </tbody>
+            </table>
+            <button type="button" class="btn btn-success" id="add-limit">Adicionar Limite</button>
+        </div>
+
+        <!-- Modal para edição/criação de limite -->
+        <div class="modal fade" id="limitModal" tabindex="-1" role="dialog" aria-labelledby="limitModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="limitModalLabel">Editar Limite</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Fechar">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" id="limit-id">
+                        <div class="form-group">
+                            <label for="resource">Recurso</label>
+                            <input type="text" class="form-control" id="resource" required>
                         </div>
-                        <button type="button" class="btn btn-success add-limit">+</button>
+                        <div class="form-group">
+                            <label for="limit-value">Valor</label>
+                            <input type="text" class="form-control" id="limit-value">
+                        </div>
+                        <div class="form-group">
+                            <label for="description">Descrição</label>
+                            <textarea class="form-control" id="description" rows="3"></textarea>
+                        </div>
+                        <div class="form-group form-check">
+                            <input type="checkbox" class="form-check-input" id="available">
+                            <label class="form-check-label" for="available">Disponível</label>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Fechar</button>
+                        <button type="button" class="btn btn-primary" id="save-limit">Salvar</button>
                     </div>
                 </div>
             </div>
@@ -108,25 +159,77 @@
 <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
 <script>
     $(document).ready(function() {
-        $('.add-limit').click(function() {
-            var limitGroup = `
-                <div class="input-group mb-2">
-                    <input type="text" name="limits[]" class="form-control" placeholder="Nome do limite" required>
-                    <input type="text" name="limit_values[]" class="form-control" placeholder="Valor">
-                    <input type="text" name="descriptions[]" class="form-control" placeholder="Descrição">
-                    <div class="input-group-append">
-                        <div class="input-group-text">
-                            <input type="checkbox" name="availables[]" checked>
-                        </div>
-                        <button type="button" class="btn btn-danger remove-limit">-</button>
-                    </div>
-                </div>
-            `;
-            $('#limits-container').append(limitGroup);
+        // Adicionar limite
+        $('#add-limit').click(function() {
+            $('#limitModal').modal('show');
+            $('#limit-id').val('');
+            $('#resource').val('');
+            $('#limit-value').val('');
+            $('#description').val('');
+            $('#available').prop('checked', true);
         });
 
+        // Editar limite
+        $(document).on('click', '.edit-limit', function() {
+            try {
+                var limitData = $(this).data('limit');
+
+                // Se já for objeto, use diretamente
+                if (typeof limitData === 'object') {
+                    var limit = limitData;
+                } else {
+                    // Decodifica os caracteres HTML e então faz o parse
+                    var decodedData = $('<div/>').html(limitData).text();
+                    var limit = JSON.parse(decodedData);
+                }
+
+                $('#limitModal').modal('show');
+                $('#limit-id').val(limit.id);
+                $('#resource').val(limit.resource);
+                $('#limit-value').val(limit.limit_value);
+                $('#description').val(limit.description);
+                $('#available').prop('checked', limit.available);
+            } catch (e) {
+                console.error('Erro ao fazer parse do JSON:', e);
+                console.log('Dados recebidos:', $(this).data('limit'));
+            }
+        });
+
+        // Salvar limite
+        $('#save-limit').click(function() {
+            var limitId = $('#limit-id').val();
+            var resource = $('#resource').val();
+            var limitValue = $('#limit-value').val();
+            var description = $('#description').val();
+            var available = $('#available').prop('checked');
+
+            var limitRow = `
+                <tr class="${available ? '' : 'text-muted'}">
+                    <td>${resource}</td>
+                    <td>${limitValue}</td>
+                    <td>${description}</td>
+                    <td>${available ? 'Sim' : 'Não'}</td>
+                    <td>
+                        <button type="button" class="btn btn-sm btn-primary edit-limit" data-limit='{"id":"${limitId}","resource":"${resource}","limit_value":"${limitValue}","description":"${description}","available":${available}}'>Editar</button>
+                        <button type="button" class="btn btn-sm btn-danger remove-limit" data-id="${limitId}">Remover</button>
+                    </td>
+                </tr>
+            `;
+
+            if (limitId) {
+                // Atualizar limite existente
+                $(`tr[data-id="${limitId}"]`).replaceWith(limitRow);
+            } else {
+                // Adicionar novo limite
+                $('#limits-table').append(limitRow);
+            }
+
+            $('#limitModal').modal('hide');
+        });
+
+        // Remover limite
         $(document).on('click', '.remove-limit', function() {
-            $(this).closest('.input-group').remove();
+            $(this).closest('tr').remove();
         });
     });
 

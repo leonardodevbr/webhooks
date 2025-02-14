@@ -50,9 +50,7 @@ class PlanController extends Controller {
             'slug' => 'required|string|max:255|unique:plans,slug',
             'description' => 'nullable|string|max:255',
             'price' => 'required|numeric|min:0',
-            'billing_cycle' => 'required|in:monthly,yearly',
-            'limits' => 'required|array',
-            'limit_values' => 'required|array|same:limits'
+            'billing_cycle' => 'required|in:monthly,yearly'
         ]);
 
         if ($validator->fails()) {
@@ -62,15 +60,16 @@ class PlanController extends Controller {
         // Criar plano
         $plan = Plan::create($validator->validated());
 
-        // Criar os limites associados ao plano
-        foreach ($request->limits as $index => $limit) {
-            PlanLimit::create([
-                'plan_id' => $plan->id,
-                'resource' => $limit,
-                'limit_value' => $request->limit_values[$index] ?: null,
-                'description' => $request->descriptions[$index] ?: null,
-                'available' => isset($request->availables[$index])
-            ]);
+        if ($request->has('resources')) {
+            foreach ($request->resources as $index => $resource) {
+                PlanLimit::create([
+                    'plan_id' => $plan->id,
+                    'resource' => $resource,
+                    'limit_value' => $request->limit_values[$index] ?: null,
+                    'description' => $request->descriptions[$index] ?: null,
+                    'available' => isset($request->availables[$index])
+                ]);
+            }
         }
 
         return redirect()->route('plans.index')->with('success', 'Plano criado com sucesso.');
@@ -85,8 +84,7 @@ class PlanController extends Controller {
             'description' => 'nullable|string|max:255',
             'price' => 'required|numeric|min:0',
             'billing_cycle' => 'required|in:monthly,yearly',
-            'limits' => 'required|array',
-            'limit_values' => 'required|array|same:limits'
+            'limits' => 'array'
         ]);
 
         if ($validator->fails()) {
@@ -98,15 +96,18 @@ class PlanController extends Controller {
 
         // Atualizar limites
         $plan->plan_limits()->delete();
-        foreach ($request->limits as $index => $limit) {
-            PlanLimit::create([
-                'plan_id' => $plan->id,
-                'resource' => $limit,
-                'limit_value' => $request->limit_values[$index] ?: null,
-                'description' => $request->descriptions[$index] ?: null,
-                'available' => isset($request->availables[$index])
-            ]);
+        if ($request->has('resources')) {
+            foreach ($request->resources as $index => $resource) {
+                PlanLimit::create([
+                    'plan_id' => $plan->id,
+                    'resource' => $resource,
+                    'limit_value' => $request->limit_values[$index] ?: null,
+                    'description' => $request->descriptions[$index] ?: null,
+                    'available' => isset($request->availables[$index])
+                ]);
+            }
         }
+
 
         return redirect()->route('plans.index')->with('success', 'Plano atualizado com sucesso.');
     }
