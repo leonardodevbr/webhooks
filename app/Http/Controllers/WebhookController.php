@@ -89,7 +89,7 @@ class WebhookController extends Controller
 
     public function customListener(Request $request, string $urlSlug, string $urlHash)
     {
-        $url = Url::where('slug', $urlSlug)->where('hash', $urlHash)->first();
+        $url = Url::where('slug', $urlSlug)->first();
 
         if (!$url) {
             return response()->json(['status' => 'error', 'message' => 'URL não encontrada.'], 404);

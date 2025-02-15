@@ -269,12 +269,12 @@ table.compact-table td {
 }
 
 .bg-dark{
-    background: #333642!important;
+    background: #0b1423!important;
 }
 
 .logo {
     height: 67px;
-    background-image: url("/images/logo.jpg");
+    background-image: url("/images/logo.png");
     width: 235px;
     background-position: center;
     background-size: cover;
