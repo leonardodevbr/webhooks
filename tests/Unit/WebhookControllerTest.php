@@ -2,7 +2,7 @@
 
 namespace Tests\Unit;
 
-use App\Http\Controllers\WebhookController;
+use App\Http\Controllers\PublicController;
 use App\Models\Webhook;
 use App\Models\Url;
 use App\Models\Account;
@@ -119,8 +119,8 @@ class WebhookControllerTest extends TestCase
             'HTTP_Content-Type' => 'application/json'
         ], json_encode(['key' => 'value']));
 
-        $controller = new WebhookController();
-        $reflection = new ReflectionMethod(WebhookController::class, 'extractRequestData');
+        $controller = new PublicController();
+        $reflection = new ReflectionMethod(PublicController::class, 'extractRequestData');
         $reflection->setAccessible(true);
 
         $data = $reflection->invoke($controller, $request, $url->id);

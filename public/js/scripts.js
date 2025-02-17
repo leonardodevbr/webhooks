@@ -89,7 +89,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     channel.bind('new-webhook', async function (eventData) {
         try {// Fazendo a requisição com o ID do webhook recebido
-            const response = await fetch(route('webhook.load-single', {id: eventData.id}), {method: 'GET'});
+            const response = await fetch(route('public.load-single', {id: eventData.id}), {method: 'GET'});
 
             // Parseando os dados recebidos
             const data = await response.json();
@@ -107,7 +107,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
     channel.bind('local-retransmission', async function (eventData) {
         // Busca os dados do webhook a partir do backend
-        const webhookResponse = await fetch(route('webhook.load-single', {id: eventData.id}), {method: 'GET'});
+        const webhookResponse = await fetch(route('public.load-single', {id: eventData.id}), {method: 'GET'});
         if (!webhookResponse.ok) {
             throw new Error("Erro ao carregar o webhook.");
         }
@@ -182,7 +182,7 @@ async function getNotificationStatus() {
         return;
     }
     try {
-        const response = await fetch(route('webhook.get-notification-status', { id: urlId }));
+        const response = await fetch(route('public.get-notification-status', { id: urlId }));
         if (response.ok) {
             const data = await response.json();
             return data.notifications_enabled;
@@ -216,7 +216,7 @@ function displayRetransmissionUrls(retransmitUrls) {
 
 async function removeRetransmissionUrl(id) {
     try {
-        const response = await fetch(route('webhook.retransmission.remove', {id}), {
+        const response = await fetch(route('public.retransmission.remove', {id}), {
             method: 'DELETE',
         });
 
@@ -249,7 +249,7 @@ async function addRetransmissionUrl() {
     saveButton.innerText = "Salvando...";
 
     try {
-        const response = await fetch(route('webhook.retransmission.add'), {
+        const response = await fetch(route('public.retransmission.add'), {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -297,7 +297,7 @@ async function loadRetransmissionUrls() {
         return;
     }
     try {
-        const response = await fetch(route('webhook.retransmission.list-for-url', {url_id: urlId}), {method: 'GET'});
+        const response = await fetch(route('public.retransmission.list-for-url', {url_id: urlId}), {method: 'GET'});
 
         if (!response.ok) {
             throw new Error("Erro ao carregar URLs de retransmissão.");
@@ -316,7 +316,7 @@ async function loadRetransmissionUrls() {
 async function retransmitWebhook(id) {
     try {
         // Envia para o backend processar URLs online
-        const backendResponse = await fetch(route('webhook.retransmit', {id: id}), {
+        const backendResponse = await fetch(route('public.retransmit', {id: id}), {
             method: 'POST', headers: {
                 'Content-Type': 'application/json',
             },
@@ -382,7 +382,7 @@ async function createNewUrl() {
         document.body.appendChild(overlay);
 
         try {
-            const response = await fetch(route('webhook.create-new-url'), {
+            const response = await fetch(route('public.create-new-url'), {
                 method: 'POST', headers: {
                     'Content-Type': 'application/json'
                 }
@@ -408,12 +408,12 @@ async function createNewUrl() {
 
 async function removeWebhook(id) {
     document.getElementById(`item-${id}`).remove();
-    await fetch(route('webhook.delete', {id: id}), {method: 'DELETE'});
+    await fetch(route('public.delete', {id: id}), {method: 'DELETE'});
 }
 
 async function clearAllWebhooks() {
     if (confirm("Tem certeza de que deseja remover todas as requests?")) {
-        await fetch(route('webhook.delete-all', {url_hash: urlHash}), {method: 'DELETE'});
+        await fetch(route('public.delete-all', {url_slug: urlSlug}), {method: 'DELETE'});
         loadWebhooks();
     }
 }
@@ -574,7 +574,7 @@ function updateResetButtonVisibility() {
 
 async function markAsViewed(webhook) {
     if (!webhook.viewed) {
-        const response = await fetch(route('webhook.mark-viewed', {id: webhook.id}), {
+        const response = await fetch(route('public.mark-viewed', {id: webhook.id}), {
             method: 'PATCH'
         });
 
@@ -685,10 +685,10 @@ async function loadWebhooks() {
     }
 
     updateResetButtonVisibility();
-}
+}``
 
 async function fetchWebhooks() {
-    const response = await fetch(route('webhook.load', {url_hash: urlHash}));
+    const response = await fetch(route('public.load', {url_slug: urlSlug}));
     return await response.json();
 }
 
@@ -716,7 +716,7 @@ async function toggleNotifications(event) {
     if (event) event.stopPropagation(); // Evita o fechamento do dropdown
 
     try {
-        const response = await fetch(route('webhook.toggle-notifications', { id: urlId }), {
+        const response = await fetch(route('public.toggle-notifications', { id: urlId }), {
             method: 'PATCH',
             headers: {
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),

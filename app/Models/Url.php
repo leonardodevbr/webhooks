@@ -17,19 +17,19 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * Class Url
  * 
  * @property int $id
- * @property string $hash
  * @property string $ip_address
  * @property int|null $account_id
- * @property string|null $slug
+ * @property string $slug
  * @property bool $notifications_enabled
  * @property int $request_count
  * @property Carbon|null $blocked_at
+ * @property Carbon|null $expires_at
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * 
  * @property Account|null $account
+ * @property Collection|WebhookRequest[] $webhook_requests
  * @property Collection|WebhookRetransmissionUrl[] $webhook_retransmission_urls
- * @property Collection|Webhook[] $webhooks
  *
  * @package App\Models
  */
@@ -42,17 +42,18 @@ class Url extends Model
 		'account_id' => 'int',
 		'notifications_enabled' => 'bool',
 		'request_count' => 'int',
-		'blocked_at' => 'datetime'
+		'blocked_at' => 'datetime',
+		'expires_at' => 'datetime'
 	];
 
 	protected $fillable = [
-		'hash',
 		'ip_address',
 		'account_id',
 		'slug',
 		'notifications_enabled',
 		'request_count',
-		'blocked_at'
+		'blocked_at',
+		'expires_at'
 	];
 
 	public function account(): BelongsTo
@@ -60,13 +61,13 @@ class Url extends Model
 		return $this->belongsTo(Account::class);
 	}
 
+	public function webhook_requests(): HasMany
+	{
+		return $this->hasMany(WebhookRequest::class);
+	}
+
 	public function webhook_retransmission_urls(): HasMany
 	{
 		return $this->hasMany(WebhookRetransmissionUrl::class);
-	}
-
-	public function webhooks(): HasMany
-	{
-		return $this->hasMany(Webhook::class);
 	}
 }

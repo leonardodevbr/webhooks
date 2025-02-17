@@ -7,9 +7,11 @@
 namespace App\Models;
 
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Class WebhookRetransmissionUrl
@@ -19,11 +21,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $subscription_id
  * @property Carbon|null $blocked_at
  * @property string $url
- * @property bool $is_online
+ * @property bool $is_public
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * 
  * @property Subscription|null $subscription
+ * @property Collection|WebhookRetransmission[] $webhook_retransmissions
  *
  * @package App\Models
  */
@@ -36,7 +39,7 @@ class WebhookRetransmissionUrl extends Model
 		'url_id' => 'int',
 		'subscription_id' => 'int',
 		'blocked_at' => 'datetime',
-		'is_online' => 'bool'
+		'is_public' => 'bool'
 	];
 
 	protected $fillable = [
@@ -44,7 +47,7 @@ class WebhookRetransmissionUrl extends Model
 		'subscription_id',
 		'blocked_at',
 		'url',
-		'is_online'
+		'is_public'
 	];
 
 	public function subscription(): BelongsTo
@@ -55,5 +58,10 @@ class WebhookRetransmissionUrl extends Model
 	public function url(): BelongsTo
 	{
 		return $this->belongsTo(Url::class);
+	}
+
+	public function webhook_retransmissions(): HasMany
+	{
+		return $this->hasMany(WebhookRetransmission::class);
 	}
 }

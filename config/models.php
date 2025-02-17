@@ -523,7 +523,7 @@ return [
 
     '@connections' => [
         'mysql' => [
-            'accounts' => [
+            'users' => [
                 'parent' => Illuminate\Foundation\Auth\User::class
             ],
         ],

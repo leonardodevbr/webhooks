@@ -22,15 +22,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $external_subscription_id
  * @property Carbon $started_at
  * @property Carbon|null $expires_at
- * @property bool $is_active
+ * @property string $status
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * 
  * @property Account $account
  * @property Plan $plan
  * @property Collection|Payment[] $payments
+ * @property Collection|WebhookRequest[] $webhook_requests
  * @property Collection|WebhookRetransmissionUrl[] $webhook_retransmission_urls
- * @property Collection|Webhook[] $webhooks
  *
  * @package App\Models
  */
@@ -43,8 +43,7 @@ class Subscription extends Model
 		'plan_id' => 'int',
 		'account_id' => 'int',
 		'started_at' => 'datetime',
-		'expires_at' => 'datetime',
-		'is_active' => 'bool'
+		'expires_at' => 'datetime'
 	];
 
 	protected $fillable = [
@@ -53,7 +52,7 @@ class Subscription extends Model
 		'external_subscription_id',
 		'started_at',
 		'expires_at',
-		'is_active'
+		'status'
 	];
 
 	public function account(): BelongsTo
@@ -71,13 +70,13 @@ class Subscription extends Model
 		return $this->hasMany(Payment::class);
 	}
 
+	public function webhook_requests(): HasMany
+	{
+		return $this->hasMany(WebhookRequest::class);
+	}
+
 	public function webhook_retransmission_urls(): HasMany
 	{
 		return $this->hasMany(WebhookRetransmissionUrl::class);
-	}
-
-	public function webhooks(): HasMany
-	{
-		return $this->hasMany(Webhook::class);
 	}
 }

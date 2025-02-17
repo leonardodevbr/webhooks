@@ -26,7 +26,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * 
- * @property Collection|PlanLimit[] $plan_limits
+ * @property Collection|PlanResource[] $plan_resources
  * @property Collection|Subscription[] $subscriptions
  *
  * @package App\Models
@@ -51,9 +51,9 @@ class Plan extends Model
 		'external_plan_id'
 	];
 
-	public function plan_limits(): HasMany
+	public function plan_resources(): HasMany
 	{
-		return $this->hasMany(PlanLimit::class);
+		return $this->hasMany(PlanResource::class);
 	}
 
 	public function subscriptions(): HasMany
