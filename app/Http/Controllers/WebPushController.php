@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Url;
 use App\Models\Webhook;
+use App\Models\WebhookRequest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Minishlink\WebPush\Subscription;
@@ -24,7 +25,7 @@ class WebPushController extends Controller
         return response()->json(['success' => 'Inscrição salva!']);
     }
 
-    public function sendNotification(Url $url, Webhook $webhook)
+    public function sendNotification(Url $url, WebhookRequest $webhookRequest)
     {
         $subscriptionData = json_decode(file_get_contents(storage_path('push-subscriptions.json')), true);
         $subscription = Subscription::create($subscriptionData);
@@ -38,11 +39,11 @@ class WebPushController extends Controller
         ]);
 
         $options = [
-            'title' => 'New request: '.$webhook->hash,
-            'body' => "{$webhook->method} from {$webhook->ip} ({$webhook->size} bytes)\n" . json_encode(json_decode($webhook->body), JSON_PRETTY_PRINT),
+            'title' => 'New request: '.$webhookRequest->hash,
+            'body' => "{$webhookRequest->method} from {$webhookRequest->ip} ({$webhookRequest->size} bytes)\n" . json_encode(json_decode($webhookRequest->body), JSON_PRETTY_PRINT),
             'icon' => public_path('/apple-touch-icon.png'),
-            'tag' => $webhook->hash->toString(),
-            'data' => ['url' => route('webhook.view', ['url_hash' => $url->hash])]
+            'tag' => $webhookRequest->hash->toString(),
+            'data' => ['url' => route('public.view', $url->slug)]
         ];
 
         $webPush->queueNotification($subscription, json_encode($options));

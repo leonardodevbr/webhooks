@@ -27,7 +27,6 @@ Route::post('/notifications/efipay/_listener', [EfiPayWebhookController::class, 
 
 //Rotas públicas
 Route::get('/', [PublicController::class, 'index'])->name('public.index');
-
 Route::post('/create-new', [PublicController::class, 'createNewUrl'])->name('public.create-new-url');
 
 Route::get('/view/{url_slug}', [PublicController::class, 'view'])->name('public.view');

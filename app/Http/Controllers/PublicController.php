@@ -24,17 +24,15 @@ class PublicController extends Controller
 
     public function index()
     {
-        DB::beginTransaction();
-        try {
-            $ip = request()->ip();
+        $ip = request()->ip();
+        $urls = Url::where('ip_address', $ip)->get();
+        return view('public.index', compact('urls'));
+    }
 
-            $url = Url::firstOrCreate(
-                ['ip_address' => $ip],
-                [
-                    'slug' => Helper::generateShortHash(),
-                    'expires_at' => now()->addDays(7),
-                ]
-            );
+    public function view(string $urlSlug)
+    {
+        try {
+            $url = Url::where('slug', $urlSlug)->firstOrFail();
 
             if (!empty($url['account_id'])) {
                 if (!Auth::check() || Auth::id() != $url['account_id']) {
@@ -43,24 +41,9 @@ class PublicController extends Controller
                 }
             }
 
-            DB::commit();
-
-            return $this->view($url->slug);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            Log::error('Erro ao exibir webhooks: ' . $e->getMessage());
-            return response()->json(['error' => 'Erro ao processar a solicitação.'], 500);
-        }
-    }
-
-    public function view(string $urlSlug)
-    {
-        try {
-            $url = Url::where('slug', $urlSlug)->firstOrFail();
-
             if (!empty($url['expires_at']) && $url['expires_at'] < now()) {
-                return view('public.view', compact('url'))
-                    ->with('warning', 'URL expirada. Solicite uma nova URL.');
+                return redirect()->route('public.index')
+                    ->with('info', 'URL expirada. Solicite uma nova URL.');
             }
 
             $webhookRequests = $url->webhook_requests()->orderBy('created_at', 'desc')->get();
@@ -88,22 +71,22 @@ class PublicController extends Controller
     {
         try {
             $requestData = $this->extractRequestData($request, $url->id);
+            $webhookRequest = WebhookRequest::create($requestData);
 
-            $webhook = WebhookRequest::create($requestData);
-            if ($webhook) {
+            if ($webhookRequest) {
                 // Dispara o evento para o Pusher
-                $this->triggerPusherEvent(['id' => $webhook->id], 'new-webhook');
-                $this->webPush->sendNotification($url, $webhook);
+                $this->triggerPusherEvent(['id' => $webhookRequest->id], 'new-webhook-request');
+                $this->webPush->sendNotification($url, $webhookRequest);
 
                 // Verifica se existem URLs de retransmissão e processa
                 $retransmissionUrls = $url->webhook_retransmission_urls()->get();
                 if ($retransmissionUrls->isNotEmpty()) {
-                    $this->retransmitWebhook($webhook->id);
+                    $this->retransmitWebhook($webhookRequest->id);
                 }
 
                 return response()->json([
                     'message' => 'Webhook recebido.',
-                    'data' => ['webhook_hash' => $webhook->hash]
+                    'data' => ['webhook_hash' => $webhookRequest->hash]
                 ]);
             }
 
@@ -117,7 +100,7 @@ class PublicController extends Controller
         }
     }
 
-    private function extractRequestData(Request $request, int $urlId)
+    private function extractRequestData(Request $request, int $urlId): array
     {
         $headers = $request->headers->all();
         $queryParams = $request->query(); // Obtém apenas os parâmetros da URL (query string)
@@ -131,7 +114,7 @@ class PublicController extends Controller
         ]);
 
         // Se for multipart/form-data, captura os dados corretamente
-        if (strpos($contentType, 'multipart/form-data') !== false) {
+        if (str_contains($contentType, 'multipart/form-data')) {
             $formData = $request->except(array_keys($queryParams));
         }
 
@@ -139,7 +122,7 @@ class PublicController extends Controller
         $body = $request->getContent();
         $decodedBody = null;
 
-        if (strpos($contentType, 'application/json') !== false) {
+        if (str_contains($contentType, 'application/json')) {
             $decodedBody = json_decode($body, true);
 
             if (json_last_error() !== JSON_ERROR_NONE) {
@@ -193,6 +176,7 @@ class PublicController extends Controller
             'hash' => Str::uuid(),
             'url_id' => $urlId,
             'retransmitted' => false,
+            'raw_request' => $request->getContent()
         ];
     }
 
@@ -212,16 +196,16 @@ class PublicController extends Controller
     /**
      * Carrega os webhooks de uma URL pública.
      */
-    public function load(string $urlHash)
+    public function load(string $urlSlug)
     {
         try {
-            $url = Url::where('hash', $urlHash)->first();
+            $url = Url::where('slug', $urlSlug)->first();
 
             if (!$url) {
                 return response()->json(['error' => 'URL inválida.'], 404);
             }
 
-            $webhooks = $url->webhooks()->orderBy('created_at', 'desc')->get();
+            $webhooks = $url->webhook_requests()->orderBy('created_at', 'desc')->get();
 
             return response()->json($webhooks);
         } catch (\Exception $e) {
@@ -250,7 +234,7 @@ class PublicController extends Controller
             }
 
             // Busca o webhook pelo UUID e tenta deletá-lo
-            $webhook = Webhook::where('id', $id)->first();
+            $webhook = WebhookRequest::where('id', $id)->first();
 
             if (!$webhook) {
                 return response()->json(['error' => 'Webhook não encontrado'], 404);
@@ -265,18 +249,18 @@ class PublicController extends Controller
         }
     }
 
-    public function deleteAll(string $urlHash)
+    public function deleteAll(string $urlSlug)
     {
         try {
             // Verifica se o hash existe na tabela URLs
-            $url = Url::where('hash', $urlHash)->first();
+            $url = Url::where('slug', $urlSlug)->first();
 
             if (!$url) {
                 return response()->json(['error' => 'Hash de URL inválido'], 404);
             }
 
             // Remove todos os webhooks associados ao url_id
-            $url->webhooks()->delete();
+            $url->webhook_requests()->delete();
 
             return response()->json(['status' => 'Todos os webhooks associados foram deletados com sucesso']);
         } catch (\Exception $e) {
@@ -289,7 +273,7 @@ class PublicController extends Controller
     {
         try {
             // Encontra o webhook pelo ID
-            $webhook = Webhook::where('id', $id)->first();
+            $webhook = WebhookRequest::where('id', $id)->first();
 
             // Atualiza o status de 'retransmitted' para true
             $webhook->update(['retransmitted' => true]);
@@ -305,7 +289,7 @@ class PublicController extends Controller
     public function markAsViewed(int $id)
     {
         try {
-            $webhook = Webhook::where('id', $id)->first();
+            $webhook = WebhookRequest::where('id', $id)->first();
             $webhook->viewed = true;
             $webhook->save();
 
@@ -319,7 +303,7 @@ class PublicController extends Controller
     public function loadSingle(int $id)
     {
         try {
-            $webhook = Webhook::where('id', $id)->first();
+            $webhook = WebhookRequest::where('id', $id)->first();
             return response()->json($webhook);
         } catch (\Exception $e) {
             Log::error('Erro ao carregar webhook: ' . $e->getMessage());
@@ -330,16 +314,15 @@ class PublicController extends Controller
     public function createNewUrl()
     {
         try {
-            $hash = Str::uuid();
             $ip = request()->ip();
-
             $newUrl = Url::create([
-                'hash' => $hash->toString(),
-                'ip_address' => $ip
-            ]);
+                    'ip_address' => $ip,
+                    'slug' => Helper::generateShortHash(),
+                    'expires_at' => now()->addDays(7),
+                ]);
 
             // Redireciona para a nova URL com uma mensagem de sucesso
-            return redirect()->route('webhook.view', [$newUrl->hash])
+            return redirect()->route('public.view', [$newUrl->slug])
                 ->with('success', 'Nova URL criada com sucesso.');
         } catch (\Exception $e) {
             Log::error("Erro ao criar nova URL: " . $e->getMessage());
@@ -347,22 +330,21 @@ class PublicController extends Controller
         }
     }
 
-    public function retransmitWebhook(int $webhookId)
+    public function retransmitWebhook(int $webhookRequestId)
     {
         try {
-            $webhook = Webhook::where('id', $webhookId)->first();
+            $webhookRequest = WebhookRequest::where('id', $webhookRequestId)->first();
 
-            if (!$webhook) {
+            if (!$webhookRequest) {
                 return response()->json(['error' => 'Nenhum webhook encontrado para retransmissão.'], 404);
             }
 
-            $url = $webhook->url;
+            $url = $webhookRequest->url;
             if (!$url) {
                 return response()->json(['error' => 'Webhook não está associado a nenhuma URL.'], 404);
             }
 
-            // Se o usuário está autenticado, validar se o webhook pertence à conta do usuário
-            if (auth()->check() && $url->account_id !== auth()->id()) {
+            if (auth()->check() && is_object($url) && $url->account_id !== auth()->id()) {
                 return response()->json(['error' => 'Acesso negado.'], 403);
             }
 
@@ -372,76 +354,86 @@ class PublicController extends Controller
             }
 
             foreach ($retransmissionUrls as $retransmissionUrl) {
-                if (!$retransmissionUrl->is_online) {
-                    $this->triggerPusherEvent(['id' => $webhookId, 'url' => $retransmissionUrl->url], 'local-retransmission');
-                } else {
-                    $queryParams = is_string($webhook->query_params)
-                        ? json_decode($webhook->query_params, true)
-                        : ($webhook->query_params ?? []);
+                $queryParams = is_string($webhookRequest->query_params)
+                    ? json_decode($webhookRequest->query_params, true)
+                    : (is_array($webhookRequest->query_params) ? $webhookRequest->query_params : []);
 
-                    $queryString = http_build_query($queryParams);
-                    $fullUrl = $queryString ? "{$retransmissionUrl->url}?{$queryString}" : $retransmissionUrl->url;
+                $queryString = http_build_query($queryParams);
+                $fullUrl = $queryString ? "{$retransmissionUrl->url}?{$queryString}" : $retransmissionUrl->url;
 
-                    $headers = is_string($webhook->headers)
-                        ? json_decode($webhook->headers, true)
-                        : ($webhook->headers ?? []);
+                $headers = is_string($webhookRequest->headers)
+                    ? json_decode($webhookRequest->headers, true)
+                    : (is_array($webhookRequest->headers) ? $webhookRequest->headers : []);
 
-                    // 🔹 Lista de headers que podem ser mantidos
-                    $allowedHeaders = [
-                        'content-length', 'accept-encoding', 'accept',
-                        'user-agent', 'content-type', 'authorization'
-                    ];
+                $allowedHeaders = ['content-length', 'accept-encoding', 'accept', 'user-agent', 'content-type', 'authorization'];
+                $filteredHeaders = array_intersect_key($headers, array_flip($allowedHeaders));
 
-                    // 🔥 Filtra os headers antes de enviar a requisição
-                    $filteredHeaders = [];
-                    foreach ($headers as $key => $value) {
-                        if (in_array(strtolower($key), $allowedHeaders)) {
-                            $filteredHeaders[$key] = $value;
+                if (!isset($filteredHeaders['Content-Type'])) {
+                    $filteredHeaders['Content-Type'] = 'application/json';
+                }
+                if (!isset($filteredHeaders['Origin'])) {
+                    $filteredHeaders['Origin'] = url('/');
+                }
+                if (!isset($filteredHeaders['User-Agent'])) {
+                    $filteredHeaders['User-Agent'] = 'Webhook.Now/1.0';
+                }
+                if (!isset($filteredHeaders['Accept'])) {
+                    $filteredHeaders['Accept'] = '*/*';
+                }
+
+                Log::info("🔍 Enviando requisição HTTP:", [
+                    'method' => $webhookRequest->method,
+                    'url' => $fullUrl,
+                    'headers' => $filteredHeaders,
+                    'body' => $webhookRequest->body,
+                ]);
+
+                try {
+                    $options = [];
+
+                    if (!empty($webhookRequest->body)) {
+                        if (str_contains($headers['content-type'], 'application/json')) {
+                            $options['json'] = json_decode($webhookRequest->body, true);
+                        } elseif (str_contains($headers['content-type'], 'application/x-www-form-urlencoded')) {
+                            parse_str($webhookRequest->body, $formParams);
+                            $options['form_params'] = $formParams;
+                        } else {
+                            $options['body'] = $webhookRequest->body; // Mantém o body intocado para XML, binários etc.
                         }
                     }
 
-                    Log::info("🔍 Enviando requisição HTTP:", [
-                        'method' => $webhook->method,
-                        'url' => $fullUrl,
-                        'headers' => $filteredHeaders,
-                        'body' => $webhook->body,
+                    if (!isset($filteredHeaders['Content-Length']) && isset($options['body'])) {
+                        $filteredHeaders['Content-Length'] = strlen($options['body']);
+                    }
+
+                    $response = Http::withOptions(['verify' => false])
+                        ->withHeaders($filteredHeaders)
+                        ->send($webhookRequest->method, $fullUrl, $options);
+
+                    Log::info("📡 Resposta da API:", [
+                        'status' => $response->status(),
+                        'headers' => $response->headers(),
+                        'body' => $response->body(),
+                        'json' => $response->json(),
+                        'reason' => $response->reason(),
                     ]);
 
-                    try {
-                        $response = Http::withHeaders($filteredHeaders)
-                            ->send($webhook->method, $fullUrl, [
-                                'body' => $webhook->body,
-                            ]);
-
-                        Log::info("📡 Resposta da API:", [
+                   if ($response->failed()) {
+                        Log::error("❌ Falha na retransmissão para {$fullUrl}", [
                             'status' => $response->status(),
-                            'headers' => $response->headers(),
-                            'body' => $response->body(),
-                            'json' => $response->json(),
-                            'reason' => $response->reason(),
+                             'body' => $response->body(),
                         ]);
-
-                        if ($response->serverError()) {
-                            Log::warning("⚠️ Webhook retransmitido, mas o servidor de destino retornou erro 500.", [
-                                'url' => $fullUrl,
-                                'response_status' => $response->status(),
-                                'response_body' => $response->body(),
-                            ]);
-                        } elseif ($response->failed()) {
-                            Log::error("❌ Falha na retransmissão para {$fullUrl}");
-                        } else {
-                            Log::info("✅ Webhook retransmitido com sucesso para {$fullUrl}");
-                        }
-                    } catch (\Exception $e) {
-                        Log::error("❌ Erro crítico ao retransmitir webhook para {$fullUrl}: " . $e->getMessage(), [
-                            'exception' => $e,
-                        ]);
+                    } else {
+                        Log::info("✅ Webhook retransmitido com sucesso para {$fullUrl}");
                     }
+                } catch (\Exception $e) {
+                    Log::error("❌ Erro crítico ao retransmitir webhook para {$fullUrl}: " . $e->getMessage(), [
+                        'exception' => $e,
+                    ]);
                 }
             }
 
-            $this->markRetransmitted($webhookId);
-
+            $this->markRetransmitted($webhookRequestId);
             return response()->json(['success' => 'Retransmissão concluída.']);
         } catch (\Exception $e) {
             Log::error("❌ Erro na requisição:", [
@@ -452,7 +444,6 @@ class PublicController extends Controller
             return response()->json(['error' => 'Erro ao processar a solicitação.'], 500);
         }
     }
-
 
     public function listUrls()
     {

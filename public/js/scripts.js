@@ -87,7 +87,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     });
     const channel = pusher.subscribe(pusherChannel);
 
-    channel.bind('new-webhook', async function (eventData) {
+    channel.bind('new-webhook-request', async function (eventData) {
         try {// Fazendo a requisição com o ID do webhook recebido
             const response = await fetch(route('public.load-single', {id: eventData.id}), {method: 'GET'});
 
@@ -612,7 +612,7 @@ function createWebhookItem(webhook) {
                     </div>
                 </div>
                 <div class="d-flex align-items-center">
-                    <small>${new Date(webhook.timestamp).toLocaleString()}</small>
+                    <small>${new Date(webhook.created_at).toLocaleString()}</small>
                     ${!webhook.viewed ? '<span class="new"><i class="fa fa-circle"></i></span>' : ''}
                 </div>
             </div>

@@ -38,7 +38,7 @@ class WebhookControllerTest extends TestCase
         $url = Url::factory()->create();
         Webhook::factory()->count(3)->create(['url_id' => $url->id]);
 
-        $response = $this->get(route('webhook.view', ['url_hash' => $url->hash]));
+        $response = $this->get(route('public.view', ['url_hash' => $url->hash]));
         $response->assertOk();
         $response->assertViewHas('webhooks', function ($webhooks) {
             return count($webhooks) === 3;
